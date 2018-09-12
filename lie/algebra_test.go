@@ -57,7 +57,7 @@ func TestTypeAConvertEpCoord(t *testing.T) {
 
 func TestTypeADualCoxeter(t *testing.T) {
 	cases := []struct {
-		alg  TypeA
+		alg  Algebra
 		want int
 	}{
 		{TypeA{1}, 2},
@@ -75,7 +75,7 @@ func TestTypeADualCoxeter(t *testing.T) {
 
 func TestTypeAPositiveRoots(t *testing.T) {
 	cases := []struct {
-		alg  TypeA
+		alg  Algebra
 		want []Root
 	}{
 		{TypeA{1}, []Root{Root{1}}},
@@ -105,7 +105,7 @@ func TestTypeAPositiveRoots(t *testing.T) {
 
 func TestTypeAKillingForm(t *testing.T) {
 	cases := []struct {
-		alg      TypeA
+		alg      Algebra
 		wt1, wt2 Weight
 		want     float64
 	}{
@@ -119,10 +119,10 @@ func TestTypeAKillingForm(t *testing.T) {
 		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
 		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
 		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 0.6666666666666667},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 0.33333333333333337},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 0.33333333333333337},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 0.6666666666666667},
+		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 0.6666666666666666},
+		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 0.33333333333333333},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 0.33333333333333333},
+		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 0.6666666666666666},
 	}
 
 	for _, c := range cases {
@@ -133,11 +133,59 @@ func TestTypeAKillingForm(t *testing.T) {
 	}
 }
 
+func TestTypeAIntKillingForm(t *testing.T) {
+	cases := []struct {
+		alg      Algebra
+		wt1, wt2 Weight
+		want     int
+	}{
+		{TypeA{1}, Weight{0}, Weight{0}, 0},
+		{TypeA{1}, Weight{1}, Weight{0}, 0},
+		{TypeA{1}, Weight{0}, Weight{1}, 0},
+		{TypeA{1}, Weight{1}, Weight{1}, 1},
+		{TypeA{1}, Weight{2}, Weight{1}, 2},
+		{TypeA{1}, Weight{1}, Weight{2}, 2},
+		{TypeA{1}, Weight{2}, Weight{2}, 4},
+		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
+		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
+		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 2},
+		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 1},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 1},
+		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 2},
+	}
+
+	for _, c := range cases {
+		got := c.alg.IntKillingForm(c.wt1, c.wt2)
+		if got != c.want {
+			t.Errorf("KillingForm(%v, %v) == %v, want %v", c.wt1, c.wt2, got, c.want)
+		}
+	}
+}
+
+func TestTypeAKillingFactor(t *testing.T) {
+	cases := []struct {
+		alg  Algebra
+		want int
+	}{
+		{TypeA{1}, 2},
+		{TypeA{2}, 3},
+		{TypeA{3}, 4},
+	}
+
+	for _, c := range cases {
+		got := c.alg.KillingFactor()
+		if got != c.want {
+			t.Errorf("DualCoxeter() == %v, want %v", got, c.want)
+		}
+	}
+}
+
 func TestTypeALevel(t *testing.T) {
 	cases := []struct {
-		alg  TypeA
+		alg  Algebra
 		wt   Weight
-		want float64
+		want int
 	}{
 		{TypeA{1}, Weight{0}, 0},
 		{TypeA{1}, Weight{1}, 1},
@@ -158,7 +206,7 @@ func TestTypeALevel(t *testing.T) {
 
 func TestTypeADual(t *testing.T) {
 	cases := []struct {
-		alg      TypeA
+		alg      Algebra
 		wt, want Weight
 	}{
 		{TypeA{1}, Weight{0}, Weight{0}},
@@ -180,7 +228,7 @@ func TestTypeADual(t *testing.T) {
 
 func TestTypeAReflectIntoChamber(t *testing.T) {
 	cases := []struct {
-		alg      TypeA
+		alg      Algebra
 		wt, want Weight
 		parity   int
 	}{
@@ -206,7 +254,7 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 
 func TestTypeAOrbitIterator(t *testing.T) {
 	cases := []struct {
-		alg   TypeA
+		alg   Algebra
 		wt    Weight
 		orbit []Weight
 	}{
@@ -258,7 +306,7 @@ func weightSetFromList(wts []Weight) util.VectorMap {
 	return vmap
 }
 
-func equals(v1, v2 []float64) bool {
+func equals(v1, v2 []int) bool {
 	if (v1 == nil) != (v2 == nil) {
 		return false
 	}

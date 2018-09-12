@@ -1,14 +1,14 @@
 package lie
 
-import "sort"
-
 // Algebra contains type-specific Lie algebra operations.
 type Algebra interface {
 	DualCoxeter() int
 	PositiveRoots() []Root
 	Rho() Weight
 	KillingForm(Weight, Weight) float64
-	Level(Weight) float64
+	IntKillingForm(Weight, Weight) int
+	KillingFactor() int
+	Level(Weight) int
 	Dual(Weight) Weight
 	ReflectToChamber(Weight) (Weight, int)
 	ConvertRoot(Root) Weight
@@ -16,10 +16,10 @@ type Algebra interface {
 }
 
 // Weight represents a weight.
-type Weight []float64
+type Weight []int
 
 // Root represents a root in the root lattice.
-type Root []float64
+type Root []int
 
 // An OrbitIterator supplies an interface to traverse the orbit of a weight.
 type OrbitIterator interface {
@@ -40,13 +40,13 @@ func (alg TypeA) DualCoxeter() int {
 // PositiveRoots builds a list of all positive roots of the Lie algebra.
 func (alg TypeA) PositiveRoots() []Root {
 	retList := make([]Root, 0, alg.rank*(alg.rank+1)/2)
-	root := make([]float64, alg.rank)
+	root := make([]int, alg.rank)
 
 	for i := range root {
 		for j := i; j < len(root); j++ {
 			root[j] = 1
 
-			var next Root = make([]float64, alg.rank)
+			var next Root = make([]int, alg.rank)
 			copy(next, root)
 			retList = append(retList, next)
 		}
@@ -61,7 +61,7 @@ func (alg TypeA) PositiveRoots() []Root {
 
 // Rho returns one-half the sum of the positive roots of the algebra.
 func (alg TypeA) Rho() Weight {
-	rho := make([]float64, 0, alg.rank)
+	rho := make([]int, 0, alg.rank)
 	for i := 0; i < alg.rank; i++ {
 		rho = append(rho, 1)
 	}
@@ -71,11 +71,16 @@ func (alg TypeA) Rho() Weight {
 
 // KillingForm computes the Killing product of the given weights.
 func (alg TypeA) KillingForm(wt1, wt2 Weight) float64 {
-	var product float64
+	return float64(alg.IntKillingForm(wt1, wt2)) / float64(alg.KillingFactor())
+}
+
+// IntKillingForm calculates the Killing product normalized so that the product of integral weights is an integer.
+func (alg TypeA) IntKillingForm(wt1, wt2 Weight) int {
+	var product int
 	epc1 := alg.convertWeight(wt1)
 	epc2 := alg.convertWeight(wt2)
-	var sum1 float64
-	var sum2 float64
+	var sum1 int
+	var sum2 int
 
 	for i := range epc1 {
 		product += epc1[i] * epc2[i]
@@ -83,11 +88,16 @@ func (alg TypeA) KillingForm(wt1, wt2 Weight) float64 {
 		sum2 += epc2[i]
 	}
 
-	return product - sum1*sum2/float64(alg.rank+1)
+	return (alg.rank+1)*product - sum1*sum2
+}
+
+// KillingFactor returns IntKillingForm/KillingForm.
+func (alg TypeA) KillingFactor() int {
+	return alg.rank + 1
 }
 
 // Level computes the 'level' of the given weight, i.e. its product with the highest root.
-func (alg TypeA) Level(wt Weight) (lv float64) {
+func (alg TypeA) Level(wt Weight) (lv int) {
 	for i := range wt {
 		lv += wt[i]
 	}
@@ -96,7 +106,7 @@ func (alg TypeA) Level(wt Weight) (lv float64) {
 
 // Dual computes the highest weight of the dual repr. of corresponding to the given weight.
 func (alg TypeA) Dual(wt Weight) (revWt Weight) {
-	revWt = make([]float64, len(wt))
+	revWt = make([]int, len(wt))
 	for i := range wt {
 		revWt[len(wt)-i-1] = wt[i]
 	}
@@ -108,7 +118,6 @@ func (alg TypeA) Dual(wt Weight) (revWt Weight) {
 func (alg TypeA) ReflectToChamber(wt Weight) (Weight, int) {
 	epc := alg.convertWeight(wt)
 	epc, parity := insertSort(epc)
-	sort.Slice(epc, func(i, j int) bool { return epc[i] > epc[j] })
 
 	lastCoord := epc[len(epc)-1]
 	for i := range epc {
@@ -119,7 +128,7 @@ func (alg TypeA) ReflectToChamber(wt Weight) (Weight, int) {
 }
 
 func insertSort(epc epCoord) (dom epCoord, parity int) {
-	dom = make([]float64, len(epc))
+	dom = make([]int, len(epc))
 	copy(dom, epc)
 	parity = 1
 
@@ -138,7 +147,7 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 	epc := alg.convertWeight(domWt)
 
 	// Construct list of unique coords and multiplicities
-	uniqCoords := []float64{epc[0]}
+	uniqCoords := []int{epc[0]}
 	cur := epc[0]
 	multiplicities := []int{0}
 	for _, coord := range epc {
@@ -168,7 +177,7 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 
 type typeAOrbitIterator struct {
 	alg        TypeA
-	uniqCoords []float64
+	uniqCoords []int
 	indices    []int
 	multMatrix [][]int
 	done       bool
@@ -176,7 +185,7 @@ type typeAOrbitIterator struct {
 
 func (iter *typeAOrbitIterator) Next() Weight {
 	// Construct new weight
-	epc := make([]float64, 0, len(iter.indices))
+	epc := make([]int, 0, len(iter.indices))
 	for _, index := range iter.indices {
 		epc = append(epc, iter.uniqCoords[index])
 	}
@@ -230,11 +239,11 @@ func newList(list []int) (newCopy []int) {
 	return
 }
 
-type epCoord []float64
+type epCoord []int
 
 func (alg TypeA) convertWeight(wt Weight) (epc epCoord) {
-	epc = make([]float64, alg.rank+1)
-	var part float64
+	epc = make([]int, alg.rank+1)
+	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
 		part += wt[i]
 		epc[i] = part
@@ -243,7 +252,7 @@ func (alg TypeA) convertWeight(wt Weight) (epc epCoord) {
 }
 
 func (alg TypeA) convertEpCoord(epc epCoord) (wt Weight) {
-	wt = make([]float64, alg.rank)
+	wt = make([]int, alg.rank)
 	for i := range wt {
 		wt[i] = epc[i] - epc[i+1]
 	}
@@ -253,10 +262,10 @@ func (alg TypeA) convertEpCoord(epc epCoord) (wt Weight) {
 // ConvertRoot converts a root into a weight.
 func (alg TypeA) ConvertRoot(rt Root) Weight {
 	if alg.rank == 1 {
-		return []float64{2 * rt[0]}
+		return []int{2 * rt[0]}
 	}
 
-	wt := []float64{}
+	wt := []int{}
 	wt = append(wt, 2*rt[0]-rt[1])
 	for i := 1; i < len(rt)-1; i++ {
 		wt = append(wt, 2*rt[i]-rt[i+1]-rt[i-1])

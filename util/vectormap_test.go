@@ -8,15 +8,15 @@ import (
 
 func TestEmptyEntries(t *testing.T) {
 	cases := []struct {
-		existingKey []float64
-		testKey     []float64
+		existingKey []int
+		testKey     []int
 	}{
-		{[]float64{}, []float64{1}},
-		{[]float64{1}, []float64{}},
-		{[]float64{1}, []float64{1, 2}},
-		{[]float64{1, 2}, []float64{}},
-		{[]float64{1, 2}, []float64{1}},
-		{[]float64{1, 2}, []float64{1, 2, 3}},
+		{[]int{}, []int{1}},
+		{[]int{1}, []int{}},
+		{[]int{1}, []int{1, 2}},
+		{[]int{1, 2}, []int{}},
+		{[]int{1, 2}, []int{1}},
+		{[]int{1, 2}, []int{1, 2, 3}},
 	}
 
 	for _, c := range cases {
@@ -30,13 +30,13 @@ func TestEmptyEntries(t *testing.T) {
 }
 func TestSinglePut(t *testing.T) {
 	cases := []struct {
-		key   []float64
+		key   []int
 		value interface{}
 	}{
-		{[]float64{1}, 5},
+		{[]int{1}, 5},
 		{lie.Weight{2}, true},
-		{[]float64{1, 0}, 5},
-		{[]float64{1, 1}, 1.5},
+		{[]int{1, 0}, 5},
+		{[]int{1, 1}, 1.5},
 	}
 
 	for _, c := range cases {
@@ -51,13 +51,13 @@ func TestSinglePut(t *testing.T) {
 
 func TestMultiPut(t *testing.T) {
 	cases := []struct {
-		key   []float64
+		key   []int
 		value interface{}
 	}{
-		{[]float64{1}, 1},
-		{[]float64{1, 0}, 2},
-		{[]float64{1, 1}, 2.5},
-		{[]float64{2, 1}, 3.5},
+		{[]int{1}, 1},
+		{[]int{1, 0}, 2},
+		{[]int{1, 1}, 2.5},
+		{[]int{2, 1}, 3.5},
 	}
 
 	vmap := NewVectorMap()
@@ -66,6 +66,179 @@ func TestMultiPut(t *testing.T) {
 		got, _ := vmap.Get(c.key)
 		if got != c.value {
 			t.Errorf("vmap.Get(%v) = %v, want %v", c.key, got, c.value)
+		}
+	}
+}
+
+func TestRemove(t *testing.T) {
+	cases := []struct {
+		keys         [][]int
+		removeKeys   [][]int
+		wantPresent  [][]int
+		wantAbsent   [][]int
+		wantNumNodes int
+	}{
+		{[][]int{{1}}, [][]int{{1}}, [][]int{}, [][]int{{1}}, 0},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2, 3}}, [][]int{{1}, {1, 2}}, [][]int{{1, 2, 3}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}, {1, 2, 3}}, [][]int{{1}}, [][]int{{1, 2}, {1, 2, 3}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{}, [][]int{{1}, {1, 2}, {1, 2, 3}}, 0},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}}, [][]int{{1}, {1, 2, 3}}, [][]int{{1, 2}}, 3},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}}, [][]int{{1, 2}, {1, 2, 3}}, [][]int{{1}}, 3},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 3}}, [][]int{{1}, {1, 2}}, [][]int{{1, 3}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}}, [][]int{{1}, {1, 3}}, [][]int{{1, 2}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}, {1, 3}}, [][]int{{1}}, [][]int{{1, 2}, {1, 3}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}}, [][]int{{1, 3}, {1, 2}}, [][]int{{1}}, 3},
+	}
+
+	for _, c := range cases {
+		vmap := &vectorMap{head: &node{}}
+		for i := range c.keys {
+			vmap.Put(c.keys[i], true)
+		}
+
+		for _, key := range c.removeKeys {
+			_, present := vmap.Remove(key)
+			if !present {
+				t.Errorf("vmap.Remove(%v) = _, false, want _, true", key)
+			}
+		}
+
+		gotNumNodes := numNodes(vmap)
+		if gotNumNodes != c.wantNumNodes {
+			t.Errorf("vmap.Remove left %v nodes, want %v nodes", gotNumNodes, c.wantNumNodes)
+		}
+
+		for _, key := range c.wantPresent {
+			_, present := vmap.Get(key)
+			if !present {
+				t.Errorf("After removal, vmap.Get(%v) = _, false, want _, true", key)
+			}
+		}
+
+		for _, key := range c.wantAbsent {
+			_, present := vmap.Get(key)
+			if present {
+				t.Errorf("After removal, vmap.Get(%v) = _, true, want _, false", key)
+			}
+		}
+	}
+}
+
+func TestKeys(t *testing.T) {
+	cases := []struct {
+		keys       [][]int
+		removeKeys [][]int
+		wantKeys   [][]int
+	}{
+		{[][]int{{1}}, [][]int{}, [][]int{{1}}},
+		{[][]int{{1}}, [][]int{{1}}, [][]int{}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{}, [][]int{{1}, {1, 2}, {1, 2, 3}}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2, 3}}, [][]int{{1}, {1, 2}}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}, {1, 2, 3}}, [][]int{{1}}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}}, [][]int{{1}, {1, 2, 3}}},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}}, [][]int{{1, 2}, {1, 2, 3}}},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{}, [][]int{{1}, {1, 2}, {1, 3}}},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 3}}, [][]int{{1}, {1, 2}}},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}}, [][]int{{1}, {1, 3}}},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}, {1, 3}}, [][]int{{1}}},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}}, [][]int{{1, 3}, {1, 2}}},
+	}
+
+	for _, c := range cases {
+		vmap := &vectorMap{head: &node{}}
+		for i := range c.keys {
+			vmap.Put(c.keys[i], true)
+		}
+
+		for _, key := range c.removeKeys {
+			_, present := vmap.Remove(key)
+			if !present {
+				t.Errorf("vmap.Remove(%v) = _, false, want _, true", key)
+			}
+		}
+
+		// Test that size of Keys() is equal to Size()
+		if len(vmap.Keys()) != vmap.size {
+			t.Errorf("%v : vmap.Keys() is size %v, want %v", c, len(vmap.Keys()), vmap.size)
+		}
+
+		// Test that all keys in Keys() are in the map
+		newVmap := NewVectorMap()
+		for _, key := range vmap.Keys() {
+			_, present := vmap.Get(key)
+			if !present {
+				t.Errorf("For %v in Keys(): vmap.Get(%v) = _, false, want _, true", key, key)
+			}
+			newVmap.Put(key, true)
+		}
+
+		// Test that all expected keys are in Keys()
+		for _, key := range c.wantKeys {
+			_, present := newVmap.Get(key)
+			if !present {
+				t.Errorf("vmap.Keys() is missing key %v", key)
+			}
+		}
+	}
+}
+
+func TestSize(t *testing.T) {
+	cases := []struct {
+		keys       [][]int
+		removeKeys [][]int
+		want       int
+	}{
+		{[][]int{}, [][]int{}, 0},
+		{[][]int{{1}}, [][]int{}, 1},
+		{[][]int{{1}}, [][]int{{1}}, 0},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{}, 3},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2, 3}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}, {1, 2, 3}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}, {1, 2}, {1, 2, 3}}, 0},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1, 2}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 2, 3}}, [][]int{{1}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{}, 3},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 3}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1, 2}, {1, 3}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}}, 2},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}, {1, 3}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}, {1, 2}}, 1},
+		{[][]int{{1}, {1, 2}, {1, 3}}, [][]int{{1}, {1, 2}, {1, 3}}, 0},
+	}
+
+	for _, c := range cases {
+		vmap := &vectorMap{head: &node{}}
+		for i := range c.keys {
+			vmap.Put(c.keys[i], true)
+		}
+
+		for _, key := range c.removeKeys {
+			_, present := vmap.Remove(key)
+			if !present {
+				t.Errorf("vmap.Remove(%v) = _, false, want _, true", key)
+			}
+		}
+
+		got := vmap.Size()
+		if got != c.want {
+			t.Errorf("%v : Size() = %v, want %v", c, got, c.want)
+		}
+	}
+}
+
+func numNodes(vmap *vectorMap) int {
+	sum := 0
+	numNodesHelper(vmap.head, &sum)
+	return sum
+}
+
+func numNodesHelper(n *node, sum *int) {
+	if n.children != nil {
+		for _, childNode := range n.children {
+			*sum++
+			numNodesHelper(childNode, sum)
 		}
 	}
 }
