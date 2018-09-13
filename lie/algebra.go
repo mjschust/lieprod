@@ -4,6 +4,7 @@ package lie
 type Algebra interface {
 	DualCoxeter() int
 	PositiveRoots() []Root
+	Weights(int) []Weight
 	Rho() Weight
 	KillingForm(Weight, Weight) float64
 	IntKillingForm(Weight, Weight) int
@@ -57,6 +58,37 @@ func (alg TypeA) PositiveRoots() []Root {
 	}
 
 	return retList
+}
+
+// Weights returns a slice of all weights with level at most the given int.
+func (alg TypeA) Weights(level int) []Weight {
+	var weightsHelper func(rank int) []Weight
+	weightsHelper = func(rank int) []Weight {
+		retList := make([]Weight, 0)
+		if rank == 1 {
+			for i := 0; i <= level; i++ {
+				retList = append(retList, Weight{i})
+			}
+		} else {
+			rMinusOneList := weightsHelper(rank - 1)
+			for _, wt := range rMinusOneList {
+				wtLevel := 0
+				for _, coord := range wt {
+					wtLevel += coord
+				}
+				for i := 0; i <= level-wtLevel; i++ {
+					newWt := make([]int, len(wt)+1)
+					copy(newWt, wt)
+					newWt[len(wt)] = i
+					retList = append(retList, newWt)
+				}
+			}
+		}
+
+		return retList
+	}
+
+	return weightsHelper(alg.rank)
 }
 
 // Rho returns one-half the sum of the positive roots of the algebra.

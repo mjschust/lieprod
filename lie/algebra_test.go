@@ -93,12 +93,68 @@ func TestTypeAPositiveRoots(t *testing.T) {
 	for _, c := range cases {
 		got := c.alg.PositiveRoots()
 		if len(got) != len(c.want) {
-			t.Errorf("PositiveRoots() == %v, want %v", got, c.want)
+			t.Errorf("len(PositiveRoots()) == %v, want %v", len(got), len(c.want))
 		}
 		for i := range c.want {
 			if !equals(got[i], c.want[i]) {
 				t.Errorf("PositiveRoots() == %v, want %v", got, c.want)
 			}
+		}
+	}
+}
+
+func TestTypeAWeights(t *testing.T) {
+	cases := []struct {
+		alg   Algebra
+		level int
+		want  [][]int
+	}{
+		{TypeA{1}, 0, [][]int{{0}}},
+		{TypeA{1}, 1, [][]int{{0}, {1}}},
+		{TypeA{1}, 2, [][]int{{0}, {1}, {2}}},
+		{TypeA{2}, 0, [][]int{{0, 0}}},
+		{TypeA{2}, 1, [][]int{{0, 0}, {1, 0}, {0, 1}}},
+		{TypeA{2}, 2, [][]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {2, 0}, {0, 2}}},
+		{TypeA{3}, 0, [][]int{
+			{0, 0, 0},
+		}},
+		{TypeA{3}, 1, [][]int{
+			{0, 0, 0},
+			{1, 0, 0},
+			{0, 1, 0},
+			{0, 0, 1},
+		}},
+		{TypeA{3}, 2, [][]int{
+			{0, 0, 0},
+			{1, 0, 0},
+			{0, 1, 0},
+			{0, 0, 1},
+			{1, 1, 0},
+			{0, 1, 1},
+			{1, 0, 1},
+			{2, 0, 0},
+			{0, 2, 0},
+			{0, 0, 2},
+		}},
+	}
+
+	for _, c := range cases {
+		wantSet := util.NewVectorMap()
+		for _, wt := range c.want {
+			wantSet.Put(wt, true)
+		}
+		got := c.alg.Weights(c.level)
+		if len(got) != len(c.want) {
+			t.Errorf("len(Weights(%v)) == %v, want %v", c.level, len(got), len(c.want))
+		}
+		for _, gotWt := range got {
+			_, present := wantSet.Remove(gotWt)
+			if !present {
+				t.Errorf("Weights(%v) should not contain %v", c.level, gotWt)
+			}
+		}
+		if wantSet.Size() != 0 {
+			t.Errorf("Weight(%v) is missing %v", c.level, wantSet.Keys())
 		}
 	}
 }

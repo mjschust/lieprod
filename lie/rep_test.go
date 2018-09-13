@@ -92,9 +92,51 @@ func TestTensor(t *testing.T) {
 		wantWts   [][]int
 		wantMults []int
 	}{
+		{TypeA{1}, Weight{0}, Weight{0},
+			[][]int{{0}},
+			[]int{1}},
+		{TypeA{1}, Weight{1}, Weight{0},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, Weight{0}, Weight{1},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, Weight{1}, Weight{1},
+			[][]int{{2}, {0}},
+			[]int{1, 1}},
+		{TypeA{1}, Weight{2}, Weight{1},
+			[][]int{{3}, {1}},
+			[]int{1, 1}},
+		{TypeA{1}, Weight{2}, Weight{2},
+			[][]int{{4}, {2}, {0}},
+			[]int{1, 1, 1}},
+		{TypeA{2}, Weight{0, 0}, Weight{0, 0},
+			[][]int{{0, 0}},
+			[]int{1}},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 0},
+			[][]int{{1, 0}},
+			[]int{1}},
+		{TypeA{2}, Weight{0, 0}, Weight{0, 1},
+			[][]int{{0, 1}},
+			[]int{1}},
+		{TypeA{2}, Weight{1, 0}, Weight{1, 0},
+			[][]int{{0, 1}, {2, 0}},
+			[]int{1, 1}},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 1},
+			[][]int{{0, 0}, {1, 1}},
+			[]int{1, 1}},
+		{TypeA{2}, Weight{1, 1}, Weight{0, 1},
+			[][]int{{0, 1}, {1, 2}, {2, 0}},
+			[]int{1, 1, 1}},
+		{TypeA{2}, Weight{1, 1}, Weight{1, 1},
+			[][]int{{0, 0}, {0, 3}, {3, 0}, {1, 1}, {2, 2}},
+			[]int{1, 1, 1, 2, 1}},
 		{TypeA{2}, Weight{2, 1}, Weight{1, 1},
 			[][]int{{0, 2}, {1, 0}, {1, 3}, {2, 1}, {3, 2}, {4, 0}},
 			[]int{1, 1, 1, 2, 1, 1}},
+		{TypeA{3}, Weight{1, 0, 1}, Weight{0, 2, 1},
+			[][]int{{0, 1, 3}, {0, 2, 1}, {1, 0, 2}, {1, 1, 0}, {1, 2, 2}, {1, 3, 0}, {2, 1, 1}},
+			[]int{1, 2, 1, 1, 1, 1, 1}},
 	}
 
 	for _, c := range cases {
@@ -108,14 +150,24 @@ func TestTensor(t *testing.T) {
 			if gotMult.(int) != c.wantMults[i] {
 				t.Errorf("Tensor(%v, %v)[%v] = %v, want %v", c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
 			}
+			tensorDecomp.Remove(c.wantWts[i])
+		}
+		if tensorDecomp.Size() != 0 {
+			t.Errorf("Tensor(%v, %v) contains extra weights", c.wt1, c.wt2)
 		}
 	}
 }
 
 func BenchmarkTensor(b *testing.B) {
-	alg := TypeA{4}
-	wt1, wt2 := Weight{2, 1, 1, 1}, Weight{1, 1, 1, 1}
+	rank := 4
+	level := 4
+	alg := TypeA{rank}
+	wts := alg.Weights(level)
 	for i := 0; i < b.N; i++ {
-		Tensor(alg, wt1, wt2)
+		for i := range wts {
+			for j := range wts {
+				Tensor(alg, wts[i], wts[j])
+			}
+		}
 	}
 }
