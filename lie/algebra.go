@@ -108,16 +108,14 @@ func (alg TypeA) KillingForm(wt1, wt2 Weight) float64 {
 
 // IntKillingForm calculates the Killing product normalized so that the product of integral weights is an integer.
 func (alg TypeA) IntKillingForm(wt1, wt2 Weight) int {
-	var product int
-	epc1 := alg.convertWeight(wt1)
-	epc2 := alg.convertWeight(wt2)
-	var sum1 int
-	var sum2 int
+	var part1, part2, product, sum1, sum2 int
 
-	for i := range epc1 {
-		product += epc1[i] * epc2[i]
-		sum1 += epc1[i]
-		sum2 += epc2[i]
+	for i := len(wt1) - 1; i >= 0; i-- {
+		part1 += wt1[i]
+		part2 += wt2[i]
+		product += part1 * part2
+		sum1 += part1
+		sum2 += part2
 	}
 
 	return (alg.rank+1)*product - sum1*sum2
@@ -156,12 +154,13 @@ func (alg TypeA) ReflectToChamber(wt Weight) (Weight, int) {
 		epc[i] = epc[i] - lastCoord
 	}
 
-	return alg.convertEpCoord(epc), parity
+	var retWt Weight = epc[:len(wt)]
+	alg.convertEpCoord(epc, &retWt)
+	return retWt, parity
 }
 
-func insertSort(epc epCoord) (dom epCoord, parity int) {
-	dom = make([]int, len(epc))
-	copy(dom, epc)
+func insertSort(epc []int) (dom []int, parity int) {
+	dom = epc[:]
 	parity = 1
 
 	for i := range dom {
@@ -179,9 +178,11 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 	epc := alg.convertWeight(domWt)
 
 	// Construct list of unique coords and multiplicities
-	uniqCoords := []int{epc[0]}
+	uniqCoords := make([]int, 0, len(epc))
+	uniqCoords = append(uniqCoords, epc[0])
 	cur := epc[0]
-	multiplicities := []int{0}
+	multiplicities := make([]int, 0, len(epc))
+	multiplicities = append(multiplicities, 0)
 	for _, coord := range epc {
 		if coord < cur {
 			uniqCoords = append(uniqCoords, coord)
@@ -193,14 +194,18 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 	}
 
 	// Initialize multiplicity matrix and indices
-	indices := []int{}
-	multMatrix := [][]int{multiplicities}
+	indices := make([]int, 0, len(epc))
+	multMatrix := make([][]int, 0, len(epc))
+	multMatrix = append(multMatrix, multiplicities)
 	for i := range epc {
 		j := 0
 		for ; multMatrix[i][j] == 0; j++ {
 		}
 		indices = append(indices, j)
-		multMatrix = append(multMatrix, newList(multMatrix[i]))
+
+		newCopy := make([]int, len(multMatrix[i]))
+		copy(newCopy, multMatrix[i])
+		multMatrix = append(multMatrix, newCopy)
 		multMatrix[i+1][j]--
 	}
 
@@ -221,7 +226,8 @@ func (iter *typeAOrbitIterator) Next() Weight {
 	for _, index := range iter.indices {
 		epc = append(epc, iter.uniqCoords[index])
 	}
-	newWt := iter.alg.convertEpCoord(epc)
+	var newWt Weight = epc[:iter.alg.rank]
+	iter.alg.convertEpCoord(epc, &newWt)
 
 	// Find index to increment
 	i := len(iter.indices) - 2
@@ -246,7 +252,7 @@ func (iter *typeAOrbitIterator) Next() Weight {
 
 	// Else, increment indices
 	iter.indices[i] = j
-	iter.multMatrix[i+1] = newList(iter.multMatrix[i])
+	copy(iter.multMatrix[i+1], iter.multMatrix[i])
 	iter.multMatrix[i+1][j]--
 	i++
 	for ; i < len(iter.indices); i++ {
@@ -254,7 +260,7 @@ func (iter *typeAOrbitIterator) Next() Weight {
 		for ; iter.multMatrix[i][j] == 0; j++ {
 		}
 		iter.indices[i] = j
-		iter.multMatrix[i+1] = newList(iter.multMatrix[i])
+		copy(iter.multMatrix[i+1], iter.multMatrix[i])
 		iter.multMatrix[i+1][j]--
 	}
 
@@ -265,15 +271,7 @@ func (iter *typeAOrbitIterator) HasNext() bool {
 	return !iter.done
 }
 
-func newList(list []int) (newCopy []int) {
-	newCopy = make([]int, len(list))
-	copy(newCopy, list)
-	return
-}
-
-type epCoord []int
-
-func (alg TypeA) convertWeight(wt Weight) (epc epCoord) {
+func (alg TypeA) convertWeight(wt Weight) (epc []int) {
 	epc = make([]int, alg.rank+1)
 	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
@@ -283,12 +281,10 @@ func (alg TypeA) convertWeight(wt Weight) (epc epCoord) {
 	return
 }
 
-func (alg TypeA) convertEpCoord(epc epCoord) (wt Weight) {
-	wt = make([]int, alg.rank)
-	for i := range wt {
-		wt[i] = epc[i] - epc[i+1]
+func (alg TypeA) convertEpCoord(epc []int, retVal *Weight) {
+	for i := range *retVal {
+		(*retVal)[i] = epc[i] - epc[i+1]
 	}
-	return
 }
 
 // ConvertRoot converts a root into a weight.
@@ -297,12 +293,12 @@ func (alg TypeA) ConvertRoot(rt Root) Weight {
 		return []int{2 * rt[0]}
 	}
 
-	wt := []int{}
-	wt = append(wt, 2*rt[0]-rt[1])
+	wt := make([]int, alg.rank)
+	wt[0] = 2*rt[0] - rt[1]
 	for i := 1; i < len(rt)-1; i++ {
-		wt = append(wt, 2*rt[i]-rt[i+1]-rt[i-1])
+		wt[i] = 2*rt[i] - rt[i+1] - rt[i-1]
 	}
 
-	wt = append(wt, 2*rt[len(rt)-1]-rt[len(rt)-2])
+	wt[len(rt)-1] = 2*rt[len(rt)-1] - rt[len(rt)-2]
 	return wt
 }

@@ -10,15 +10,15 @@ func TestTypeAConvertWeight(t *testing.T) {
 	cases := []struct {
 		alg  TypeA
 		wt   Weight
-		want epCoord
+		want []int
 	}{
-		{TypeA{1}, Weight{0}, epCoord{0, 0}},
-		{TypeA{1}, Weight{1}, epCoord{1, 0}},
-		{TypeA{1}, Weight{2}, epCoord{2, 0}},
-		{TypeA{2}, Weight{0, 0}, epCoord{0, 0, 0}},
-		{TypeA{2}, Weight{1, 0}, epCoord{1, 0, 0}},
-		{TypeA{2}, Weight{0, 1}, epCoord{1, 1, 0}},
-		{TypeA{2}, Weight{1, 1}, epCoord{2, 1, 0}},
+		{TypeA{1}, Weight{0}, []int{0, 0}},
+		{TypeA{1}, Weight{1}, []int{1, 0}},
+		{TypeA{1}, Weight{2}, []int{2, 0}},
+		{TypeA{2}, Weight{0, 0}, []int{0, 0, 0}},
+		{TypeA{2}, Weight{1, 0}, []int{1, 0, 0}},
+		{TypeA{2}, Weight{0, 1}, []int{1, 1, 0}},
+		{TypeA{2}, Weight{1, 1}, []int{2, 1, 0}},
 	}
 
 	for _, c := range cases {
@@ -32,23 +32,24 @@ func TestTypeAConvertWeight(t *testing.T) {
 func TestTypeAConvertEpCoord(t *testing.T) {
 	cases := []struct {
 		alg  TypeA
-		epc  epCoord
+		epc  []int
 		want Weight
 	}{
-		{TypeA{1}, epCoord{0, 0}, Weight{0}},
-		{TypeA{1}, epCoord{1, 1}, Weight{0}},
-		{TypeA{1}, epCoord{1, 0}, Weight{1}},
-		{TypeA{1}, epCoord{0, 1}, Weight{-1}},
-		{TypeA{2}, epCoord{0, 0, 0}, Weight{0, 0}},
-		{TypeA{2}, epCoord{1, 1, 1}, Weight{0, 0}},
-		{TypeA{2}, epCoord{1, 0, 0}, Weight{1, 0}},
-		{TypeA{2}, epCoord{1, 1, 0}, Weight{0, 1}},
-		{TypeA{2}, epCoord{2, 1, 0}, Weight{1, 1}},
-		{TypeA{2}, epCoord{1, 2, 0}, Weight{-1, 2}},
+		{TypeA{1}, []int{0, 0}, Weight{0}},
+		{TypeA{1}, []int{1, 1}, Weight{0}},
+		{TypeA{1}, []int{1, 0}, Weight{1}},
+		{TypeA{1}, []int{0, 1}, Weight{-1}},
+		{TypeA{2}, []int{0, 0, 0}, Weight{0, 0}},
+		{TypeA{2}, []int{1, 1, 1}, Weight{0, 0}},
+		{TypeA{2}, []int{1, 0, 0}, Weight{1, 0}},
+		{TypeA{2}, []int{1, 1, 0}, Weight{0, 1}},
+		{TypeA{2}, []int{2, 1, 0}, Weight{1, 1}},
+		{TypeA{2}, []int{1, 2, 0}, Weight{-1, 2}},
 	}
 
 	for _, c := range cases {
-		got := c.alg.convertEpCoord(c.epc)
+		var got Weight = make([]int, c.alg.rank)
+		c.alg.convertEpCoord(c.epc, &got)
 		if !equals(got, c.want) {
 			t.Errorf("convertEpCoord(%v) = %v, want %v", c.epc, got, c.want)
 		}
