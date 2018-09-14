@@ -2,8 +2,6 @@ package util
 
 import (
 	"testing"
-
-	"github.com/mjschust/cblocks/lie"
 )
 
 func TestEmptyEntries(t *testing.T) {
@@ -34,7 +32,7 @@ func TestSinglePut(t *testing.T) {
 		value interface{}
 	}{
 		{[]int{1}, 5},
-		{lie.Weight{2}, true},
+		{[]int{2}, true},
 		{[]int{1, 0}, 5},
 		{[]int{1, 1}, 1.5},
 	}
@@ -91,7 +89,7 @@ func TestRemove(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		vmap := &vectorMap{head: &node{}}
+		vmap := NewVectorMap()
 		for i := range c.keys {
 			vmap.Put(c.keys[i], true)
 		}
@@ -101,11 +99,6 @@ func TestRemove(t *testing.T) {
 			if !present {
 				t.Errorf("vmap.Remove(%v) = _, false, want _, true", key)
 			}
-		}
-
-		gotNumNodes := numNodes(vmap)
-		if gotNumNodes != c.wantNumNodes {
-			t.Errorf("vmap.Remove left %v nodes, want %v nodes", gotNumNodes, c.wantNumNodes)
 		}
 
 		for _, key := range c.wantPresent {
@@ -146,7 +139,7 @@ func TestKeys(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		vmap := &vectorMap{head: &node{}}
+		vmap := NewVectorMap()
 		for i := range c.keys {
 			vmap.Put(c.keys[i], true)
 		}
@@ -159,8 +152,8 @@ func TestKeys(t *testing.T) {
 		}
 
 		// Test that size of Keys() is equal to Size()
-		if len(vmap.Keys()) != vmap.size {
-			t.Errorf("%v : vmap.Keys() is size %v, want %v", c, len(vmap.Keys()), vmap.size)
+		if len(vmap.Keys()) != vmap.Size() {
+			t.Errorf("%v : vmap.Keys() is size %v, want %v", c, len(vmap.Keys()), vmap.Size())
 		}
 
 		// Test that all keys in Keys() are in the map
@@ -209,7 +202,7 @@ func TestSize(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		vmap := &vectorMap{head: &node{}}
+		vmap := NewVectorMap()
 		for i := range c.keys {
 			vmap.Put(c.keys[i], true)
 		}
@@ -224,21 +217,6 @@ func TestSize(t *testing.T) {
 		got := vmap.Size()
 		if got != c.want {
 			t.Errorf("%v : Size() = %v, want %v", c, got, c.want)
-		}
-	}
-}
-
-func numNodes(vmap *vectorMap) int {
-	sum := 0
-	numNodesHelper(vmap.head, &sum)
-	return sum
-}
-
-func numNodesHelper(n *node, sum *int) {
-	if n.children != nil {
-		for _, childNode := range n.children {
-			*sum++
-			numNodesHelper(childNode, sum)
 		}
 	}
 }

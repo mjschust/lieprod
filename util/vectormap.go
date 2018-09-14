@@ -11,124 +11,66 @@ type VectorMap interface {
 
 // NewVectorMap creates a new vector map.
 func NewVectorMap() VectorMap {
-	return &vectorMap{head: &node{}}
+	return &vectorMap{table: make(map[int][]entry)}
 }
 
 type vectorMap struct {
-	head *node
-	size int
+	table map[int][]entry
+	size  int
 }
 
 func (vmap *vectorMap) Get(key []int) (interface{}, bool) {
-	curNode := vmap.head
-	for _, keyElem := range key {
-		if curNode.children == nil {
-			return nil, false
-		} else {
-			nextNode, present := curNode.children[keyElem]
-			if present {
-				curNode = nextNode
-			} else {
-				return nil, false
-			}
+	hash := hashKey(key)
+	bucket := vmap.table[hash]
+	if bucket != nil {
+		_, e := findEntry(key, bucket)
+		if e != nil {
+			return e.getValue(), e.getValue() != nil
 		}
 	}
 
-	return curNode.value, curNode.value != nil
+	return nil, false
 }
 
 func (vmap *vectorMap) Put(key []int, value interface{}) {
-	if value == nil {
-		return
-	}
-
-	newNode := false
-	curNode := vmap.head
-	for _, keyElem := range key {
-		if curNode.children == nil {
-			curNode.children = make(map[int]*node)
-			curNode.children[keyElem] = &node{key: keyElem, parent: curNode}
-			curNode = curNode.children[keyElem]
-			newNode = true
+	hash := hashKey(key)
+	bucket := vmap.table[hash]
+	if bucket != nil {
+		_, e := findEntry(key, bucket)
+		if e != nil {
+			e.setValue(value)
 		} else {
-			nextNode, present := curNode.children[keyElem]
-			if present {
-				curNode = nextNode
-			} else {
-				curNode.children[keyElem] = &node{key: keyElem, parent: curNode}
-				curNode = curNode.children[keyElem]
-				newNode = true
-			}
+			vmap.table[hash] = append(bucket, &mapEntry{key, value})
+			vmap.size++
 		}
-	}
-
-	if newNode || curNode.value == nil {
+	} else {
+		vmap.table[hash] = []entry{&mapEntry{key, value}}
 		vmap.size++
 	}
-	curNode.value = value
 }
 
 func (vmap *vectorMap) Remove(key []int) (interface{}, bool) {
-	curNode := vmap.head
-	for _, keyElem := range key {
-		if curNode.children == nil {
-			return nil, false
-		} else {
-			nextNode, present := curNode.children[keyElem]
-			if present {
-				curNode = nextNode
-			} else {
-				return nil, false
-			}
+	hash := hashKey(key)
+	bucket := vmap.table[hash]
+	if bucket != nil {
+		i, e := findEntry(key, bucket)
+		if e != nil {
+			vmap.table[hash] = removeEntry(bucket, i)
+			vmap.size--
+			return e.getValue(), e.getValue() != nil
 		}
 	}
 
-	oldValue := curNode.value
-	curNode.value = nil
-	vmap.removeEmptyNode(curNode)
-
-	if oldValue != nil {
-		vmap.size--
-	}
-
-	return oldValue, oldValue != nil
-}
-
-func (vmap *vectorMap) removeEmptyNode(n *node) {
-	switch {
-	case n.value != nil:
-		return
-	case n.parent == nil:
-		return
-	case n.children != nil && len(n.children) > 0:
-		return
-	default:
-		delete(n.parent.children, n.key)
-		vmap.removeEmptyNode(n.parent)
-	}
+	return nil, false
 }
 
 func (vmap *vectorMap) Keys() [][]int {
-	keys := [][]int{}
-
-	var keysHelper func(n *node, keyPrefix []int)
-	keysHelper = func(n *node, keyPrefix []int) {
-		if n.children != nil && len(n.children) > 0 {
-			newPrefix := make([]int, len(keyPrefix)+1)
-			copy(newPrefix, keyPrefix)
-			for keyElem, childNode := range n.children {
-				newPrefix[len(keyPrefix)] = keyElem
-				if childNode.value != nil {
-					key := make([]int, len(newPrefix))
-					copy(key, newPrefix)
-					keys = append(keys, key)
-				}
-				keysHelper(childNode, newPrefix)
-			}
+	keys := make([][]int, 0, vmap.size)
+	for _, bucket := range vmap.table {
+		for _, e := range bucket {
+			keys = append(keys, e.getKey())
 		}
 	}
-
-	keysHelper(vmap.head, []int{})
 	return keys
 }
 
@@ -136,9 +78,64 @@ func (vmap *vectorMap) Size() int {
 	return vmap.size
 }
 
-type node struct {
-	key      int
-	value    interface{}
-	parent   *node
-	children map[int]*node
+func findEntry(key []int, bucket []entry) (int, entry) {
+	for i, ent := range bucket {
+		if equals(key, ent.getKey()) {
+			return i, ent
+		}
+	}
+	return 0, nil
+}
+
+func hashKey(key []int) int {
+	retVal := 1
+	for _, elem := range key {
+		retVal = retVal*31 + elem
+	}
+	return retVal
+}
+
+func equals(v1, v2 []int) bool {
+	if (v1 == nil) != (v2 == nil) {
+		return false
+	}
+
+	if len(v1) != len(v2) {
+		return false
+	}
+
+	for i := range v1 {
+		if v1[i] != v2[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func removeEntry(slice []entry, s int) []entry {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+type entry interface {
+	getKey() []int
+	getValue() interface{}
+	setValue(interface{})
+}
+
+type mapEntry struct {
+	key   []int
+	value interface{}
+}
+
+func (e *mapEntry) getKey() []int {
+	return e.key
+}
+
+func (e *mapEntry) getValue() interface{} {
+	return e.value
+}
+
+func (e *mapEntry) setValue(value interface{}) {
+	e.value = value
 }
