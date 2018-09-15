@@ -3,6 +3,7 @@ package lie
 // Algebra contains type-specific Lie algebra operations.
 type Algebra interface {
 	DualCoxeter() int
+	NewWeight() Weight
 	PositiveRoots() []Root
 	Weights(int) []Weight
 	Rho() Weight
@@ -10,21 +11,52 @@ type Algebra interface {
 	IntKillingForm(Weight, Weight) int
 	KillingFactor() int
 	Level(Weight) int
-	Dual(Weight) Weight
-	ReflectToChamber(Weight) (Weight, int)
-	ConvertRoot(Root) Weight
+	dual(Weight, Weight)
+	reflectToChamber(Weight, Weight) int
+	convertRoot(Root, Weight)
 	NewOrbitIterator(Weight) OrbitIterator
 }
 
 // Weight represents a weight.
 type Weight []int
 
+// Dual computes the dual of the given weight, with the result stored in the reciever.
+// WARNING: not safe for in-place usage.
+func (rslt Weight) Dual(alg Algebra, wt Weight) {
+	alg.dual(wt, rslt)
+}
+
+// ConvertRoot converts the given root into a weight, with the result stored in the reciever.
+func (rslt Weight) ConvertRoot(alg Algebra, rt Root) {
+	alg.convertRoot(rt, rslt)
+}
+
+// ReflectToChamber reflects wt into the dominant chamber, storing the result in the reciever
+// and returning the parity of the reflection.
+func (rslt Weight) ReflectToChamber(alg Algebra, wt Weight) int {
+	return alg.reflectToChamber(wt, rslt)
+}
+
+// AddWeights adds the given weights and stores the result in the reciever.
+func (rslt Weight) AddWeights(wt1, wt2 Weight) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] + wt2[i]
+	}
+}
+
+// SubWeights subtracts the given weights and stores the result in the reciever.
+func (rslt Weight) SubWeights(wt1, wt2 Weight) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] - wt2[i]
+	}
+}
+
 // Root represents a root in the root lattice.
 type Root []int
 
 // An OrbitIterator supplies an interface to traverse the orbit of a weight.
 type OrbitIterator interface {
-	Next() Weight
+	Next(Weight) Weight
 	HasNext() bool
 }
 
@@ -36,6 +68,11 @@ type TypeA struct {
 // DualCoxeter computes the dual Coxeter number of the Lie algebra.
 func (alg TypeA) DualCoxeter() int {
 	return alg.rank + 1
+}
+
+// NewWeight creates a new zero weight.
+func (alg TypeA) NewWeight() Weight {
+	return make([]int, alg.rank, alg.rank+1)
 }
 
 // PositiveRoots builds a list of all positive roots of the Lie algebra.
@@ -93,9 +130,9 @@ func (alg TypeA) Weights(level int) []Weight {
 
 // Rho returns one-half the sum of the positive roots of the algebra.
 func (alg TypeA) Rho() Weight {
-	rho := make([]int, 0, alg.rank)
+	rho := alg.NewWeight()
 	for i := 0; i < alg.rank; i++ {
-		rho = append(rho, 1)
+		rho[i] = 1
 	}
 
 	return rho
@@ -135,18 +172,23 @@ func (alg TypeA) Level(wt Weight) (lv int) {
 }
 
 // Dual computes the highest weight of the dual repr. of corresponding to the given weight.
-func (alg TypeA) Dual(wt Weight) (revWt Weight) {
-	revWt = make([]int, len(wt))
+func (alg TypeA) dual(wt Weight, rslt Weight) {
 	for i := range wt {
-		revWt[len(wt)-i-1] = wt[i]
+		rslt[len(wt)-i-1] = wt[i]
 	}
-	return
 }
 
 // ReflectToChamber reflects the given weight into the dominant chamber and returns
 // the result with reflection parity.
-func (alg TypeA) ReflectToChamber(wt Weight) (Weight, int) {
-	epc := alg.convertWeight(wt)
+func (alg TypeA) reflectToChamber(wt Weight, rslt Weight) int {
+	var epc []int
+	if cap(rslt) > len(rslt) {
+		epc = append(rslt, 0)
+		epc = alg.convertWeightToEpc(wt, epc)
+	} else {
+		epc = make([]int, alg.rank+1)
+		epc = alg.convertWeightToEpc(wt, epc)
+	}
 	epc, parity := insertSort(epc)
 
 	lastCoord := epc[len(epc)-1]
@@ -154,9 +196,8 @@ func (alg TypeA) ReflectToChamber(wt Weight) (Weight, int) {
 		epc[i] = epc[i] - lastCoord
 	}
 
-	var retWt Weight = epc[:len(wt)]
-	alg.convertEpCoord(epc, &retWt)
-	return retWt, parity
+	alg.convertEpCoord(epc, rslt)
+	return parity
 }
 
 func insertSort(epc []int) (dom []int, parity int) {
@@ -174,8 +215,9 @@ func insertSort(epc []int) (dom []int, parity int) {
 
 // NewOrbitIterator creates a new OrbitIterator for the given weight.
 func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
-	domWt, _ := alg.ReflectToChamber(wt)
-	epc := alg.convertWeight(domWt)
+	domWt := alg.NewWeight()
+	domWt.ReflectToChamber(alg, wt)
+	epc := alg.convertWeightToEpc(domWt, append(domWt, 0))
 
 	// Construct list of unique coords and multiplicities
 	uniqCoords := make([]int, 0, len(epc))
@@ -209,7 +251,7 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 		multMatrix[i+1][j]--
 	}
 
-	return &typeAOrbitIterator{alg, uniqCoords, indices, multMatrix, false}
+	return &typeAOrbitIterator{alg, uniqCoords, indices, multMatrix, epc, false}
 }
 
 type typeAOrbitIterator struct {
@@ -217,17 +259,16 @@ type typeAOrbitIterator struct {
 	uniqCoords []int
 	indices    []int
 	multMatrix [][]int
+	epc        []int
 	done       bool
 }
 
-func (iter *typeAOrbitIterator) Next() Weight {
+func (iter *typeAOrbitIterator) Next(rslt Weight) Weight {
 	// Construct new weight
-	epc := make([]int, 0, len(iter.indices))
-	for _, index := range iter.indices {
-		epc = append(epc, iter.uniqCoords[index])
+	for i, index := range iter.indices {
+		iter.epc[i] = iter.uniqCoords[index]
 	}
-	var newWt Weight = epc[:iter.alg.rank]
-	iter.alg.convertEpCoord(epc, &newWt)
+	iter.alg.convertEpCoord(iter.epc, rslt)
 
 	// Find index to increment
 	i := len(iter.indices) - 2
@@ -247,7 +288,7 @@ func (iter *typeAOrbitIterator) Next() Weight {
 	// If we're finished, return the last weight
 	if i < 0 {
 		iter.done = true
-		return newWt
+		return rslt
 	}
 
 	// Else, increment indices
@@ -264,41 +305,40 @@ func (iter *typeAOrbitIterator) Next() Weight {
 		iter.multMatrix[i+1][j]--
 	}
 
-	return newWt
+	return rslt
 }
 
 func (iter *typeAOrbitIterator) HasNext() bool {
 	return !iter.done
 }
 
-func (alg TypeA) convertWeight(wt Weight) (epc []int) {
-	epc = make([]int, alg.rank+1)
+func (alg TypeA) convertWeightToEpc(wt Weight, epc []int) []int {
 	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
 		part += wt[i]
 		epc[i] = part
 	}
-	return
+
+	return epc
 }
 
-func (alg TypeA) convertEpCoord(epc []int, retVal *Weight) {
-	for i := range *retVal {
-		(*retVal)[i] = epc[i] - epc[i+1]
+func (alg TypeA) convertEpCoord(epc []int, retVal Weight) {
+	for i := range retVal {
+		retVal[i] = epc[i] - epc[i+1]
 	}
 }
 
 // ConvertRoot converts a root into a weight.
-func (alg TypeA) ConvertRoot(rt Root) Weight {
+func (alg TypeA) convertRoot(rt Root, rslt Weight) {
 	if alg.rank == 1 {
-		return []int{2 * rt[0]}
+		rslt[0] = 2 * rt[0]
+		return
 	}
 
-	wt := make([]int, alg.rank)
-	wt[0] = 2*rt[0] - rt[1]
+	rslt[0] = 2*rt[0] - rt[1]
 	for i := 1; i < len(rt)-1; i++ {
-		wt[i] = 2*rt[i] - rt[i+1] - rt[i-1]
+		rslt[i] = 2*rt[i] - rt[i+1] - rt[i-1]
 	}
 
-	wt[len(rt)-1] = 2*rt[len(rt)-1] - rt[len(rt)-2]
-	return wt
+	rslt[len(rt)-1] = 2*rt[len(rt)-1] - rt[len(rt)-2]
 }

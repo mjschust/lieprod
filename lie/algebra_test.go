@@ -6,7 +6,7 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
-func TestTypeAConvertWeight(t *testing.T) {
+func TestTypeAConvertWeightToEpc(t *testing.T) {
 	cases := []struct {
 		alg  TypeA
 		wt   Weight
@@ -22,9 +22,10 @@ func TestTypeAConvertWeight(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.convertWeight(c.wt)
+		got := make([]int, c.alg.rank+1)
+		got = c.alg.convertWeightToEpc(c.wt, got)
 		if !equals(got, c.want) {
-			t.Errorf("convertWeight(%v) = %v, want %v", c.wt, got, c.want)
+			t.Errorf("convertWeightToEpc(%v) = %v, want %v", c.wt, got, c.want)
 		}
 	}
 }
@@ -49,7 +50,7 @@ func TestTypeAConvertEpCoord(t *testing.T) {
 
 	for _, c := range cases {
 		var got Weight = make([]int, c.alg.rank)
-		c.alg.convertEpCoord(c.epc, &got)
+		c.alg.convertEpCoord(c.epc, got)
 		if !equals(got, c.want) {
 			t.Errorf("convertEpCoord(%v) = %v, want %v", c.epc, got, c.want)
 		}
@@ -276,7 +277,8 @@ func TestTypeADual(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.Dual(c.wt)
+		got := c.alg.NewWeight()
+		got.Dual(c.alg, c.wt)
 		if !equals(got, c.want) {
 			t.Errorf("Dual(%v) = %v, want %v", c.wt, got, c.want)
 		}
@@ -301,7 +303,8 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got, parity := c.alg.ReflectToChamber(c.wt)
+		got := c.alg.NewWeight()
+		parity := got.ReflectToChamber(c.alg, c.wt)
 		if !equals(got, c.want) || parity != c.parity {
 			t.Errorf("ReflectToChamber(%v) = %v, %v, want %v, %v",
 				c.wt, got, parity, c.want, c.parity)
@@ -341,7 +344,8 @@ func TestTypeAOrbitIterator(t *testing.T) {
 		orbitIter := c.alg.NewOrbitIterator(c.wt)
 		orbitSize := 0
 		for orbitIter.HasNext() {
-			nextWt := orbitIter.Next()
+			nextWt := c.alg.NewWeight()
+			nextWt = orbitIter.Next(nextWt)
 			_, present := orbitSet.Get(nextWt)
 			if !present {
 				t.Errorf("OrbitIterator(%v) does not contain %v", c.wt, nextWt)

@@ -14,8 +14,9 @@ func ReprDimension(alg Algebra, highestWt Weight) int {
 
 	numer := 1
 	denom := 1
+	wtForm := alg.NewWeight()
 	for _, root := range posRoots {
-		wtForm := alg.ConvertRoot(root)
+		wtForm.ConvertRoot(alg, root)
 		a := alg.IntKillingForm(highestWt, wtForm)
 		b := alg.IntKillingForm(rho, wtForm)
 		numer *= a + b
@@ -36,7 +37,8 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 			level += root[i]
 		}
 
-		wtForm := alg.ConvertRoot(root)
+		wtForm := alg.NewWeight()
+		wtForm.ConvertRoot(alg, root)
 		rtList, present := rootLevelMap[level]
 		if present {
 			rootLevelMap[level] = append(rtList, wtForm)
@@ -73,7 +75,8 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 		for _, wt := range weightLevelDict[level].Keys() {
 			for rootLevel, roots := range rootLevelMap {
 				for _, root := range roots {
-					newWt := subWeights(wt, root)
+					newWt := alg.NewWeight()
+					newWt.SubWeights(wt, root)
 					if isDominant(newWt) {
 						wtSet, present := weightLevelDict[level+rootLevel]
 						if present {
@@ -112,33 +115,36 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 				}
 
 				multiplicitySum := 0
-				for _, root := range posRoots {
-					rootWt := alg.ConvertRoot(root)
-					n := 0
-					newWeight := wt
-					a := alg.IntKillingForm(wt, rootWt)
-					b := alg.IntKillingForm(rootWt, rootWt)
+				shiftedWeight := alg.NewWeight()
+				newDomWeight := alg.NewWeight()
+				for _, roots := range rootLevelMap {
+					for _, rootWt := range roots {
+						n := 0
+						copy(shiftedWeight, wt)
+						a := alg.IntKillingForm(wt, rootWt)
+						b := alg.IntKillingForm(rootWt, rootWt)
 
-					for {
-						n++
-						newWeight = addWeights(newWeight, rootWt)
-						newDomWeight, _ := alg.ReflectToChamber(newWeight)
-						_, present := domWts.Get(newDomWeight)
-						if !present {
-							break
+						for {
+							n++
+							shiftedWeight.AddWeights(shiftedWeight, rootWt)
+							newDomWeight.ReflectToChamber(alg, shiftedWeight)
+							_, present := domWts.Get(newDomWeight)
+							if !present {
+								break
+							}
+
+							freudenthalHelper(newDomWeight)
+							newWeightMultiplicity, _ := domChar.Get(newDomWeight)
+							multiplicitySum += (a + n*b) * newWeightMultiplicity.(int)
 						}
-
-						freudenthalHelper(newDomWeight)
-						newWeightMultiplicity, _ := domChar.Get(newDomWeight)
-						multiplicitySum += (a + n*b) * newWeightMultiplicity.(int)
 					}
 				}
 
 				numerator := 2 * multiplicitySum
-				tempWt := addWeights(highestWt, rho)
-				denominator := alg.IntKillingForm(tempWt, tempWt)
-				tempWt = addWeights(wt, rho)
-				denominator -= alg.IntKillingForm(tempWt, tempWt)
+				shiftedWeight.AddWeights(highestWt, rho)
+				denominator := alg.IntKillingForm(shiftedWeight, shiftedWeight)
+				shiftedWeight.AddWeights(wt, rho)
+				denominator -= alg.IntKillingForm(shiftedWeight, shiftedWeight)
 				domChar.Put(wt, numerator/denominator)
 			}
 			freudenthalHelper(wt)
@@ -156,52 +162,37 @@ func Tensor(alg Algebra, wt1, wt2 Weight) util.VectorMap {
 
 	rho := alg.Rho()
 	domChar := DominantChar(alg, wt2)
-	lamRhoSum := addWeights(wt1, rho)
+	lamRhoSum := alg.NewWeight()
+	lamRhoSum.AddWeights(wt1, rho)
 	retDict := util.NewVectorMap()
+	orbitWeight := alg.NewWeight()
 
-	for _, domWeight := range domChar.Keys() {
-		value, _ := domChar.Get(domWeight)
+	for _, charWeight := range domChar.Keys() {
+		value, _ := domChar.Get(charWeight)
 		domWtMult := value.(int)
-		orbitIterator := alg.NewOrbitIterator(domWeight)
+		orbitIterator := alg.NewOrbitIterator(charWeight)
 		for orbitIterator.HasNext() {
-			orbitWeight := orbitIterator.Next()
-			newSum := addWeights(lamRhoSum, orbitWeight)
-			newDomWeight, parity := alg.ReflectToChamber(newSum)
-			newDomWeight = subWeights(newDomWeight, rho)
-			if !isDominant(newDomWeight) {
+			orbitWeight := orbitIterator.Next(orbitWeight)
+			domWeight := orbitWeight
+			domWeight.AddWeights(lamRhoSum, orbitWeight)
+			parity := domWeight.ReflectToChamber(alg, domWeight)
+			domWeight.SubWeights(domWeight, rho)
+			if !isDominant(domWeight) {
 				continue
 			}
-			value, present := retDict.Get(newDomWeight)
+			value, present := retDict.Get(domWeight)
 			if present {
 				curMult := value.(int)
-				retDict.Put(newDomWeight, curMult+parity*domWtMult)
+				retDict.Put(domWeight, curMult+parity*domWtMult)
 			} else {
+				newDomWeight := alg.NewWeight()
+				copy(newDomWeight, domWeight)
 				retDict.Put(newDomWeight, parity*domWtMult)
 			}
 		}
 	}
 
 	return retDict
-}
-
-func addWeights(wt1, wt2 Weight) Weight {
-	var retWt Weight = make([]int, len(wt1))
-
-	for i := range wt1 {
-		retWt[i] = wt1[i] + wt2[i]
-	}
-
-	return retWt
-}
-
-func subWeights(wt1, wt2 Weight) Weight {
-	var retWt Weight = make([]int, len(wt1))
-
-	for i := range wt1 {
-		retWt[i] = wt1[i] - wt2[i]
-	}
-
-	return retWt
 }
 
 func isDominant(wt Weight) bool {
