@@ -163,6 +163,7 @@ func BenchmarkTensor(b *testing.B) {
 	level := 4
 	alg := TypeA{rank}
 	wts := alg.Weights(level)
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		for i := range wts {
 			for j := range wts {

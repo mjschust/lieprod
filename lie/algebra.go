@@ -237,15 +237,17 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 
 	// Initialize multiplicity matrix and indices
 	indices := make([]int, 0, len(epc))
-	multMatrix := make([][]int, 0, len(epc))
-	multMatrix = append(multMatrix, multiplicities)
+	multData := make([]int, len(uniqCoords)*(len(epc)+1))
+	copy(multData, multiplicities)
+	multMatrix := make([][]int, 0, len(epc)+1)
+	multMatrix = append(multMatrix, multData[0:len(uniqCoords)])
 	for i := range epc {
 		j := 0
 		for ; multMatrix[i][j] == 0; j++ {
 		}
 		indices = append(indices, j)
 
-		newCopy := make([]int, len(multMatrix[i]))
+		newCopy := multData[(i+1)*len(uniqCoords) : (i+2)*len(uniqCoords)]
 		copy(newCopy, multMatrix[i])
 		multMatrix = append(multMatrix, newCopy)
 		multMatrix[i+1][j]--

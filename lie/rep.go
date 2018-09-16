@@ -52,8 +52,8 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 	weightLevelDict := make(map[int]util.VectorMap)
 	weightLevelDict[0] = util.NewVectorMap()
 	weightLevelDict[0].Put(highestWt, true)
-	domWts := util.NewVectorMap()
-	domWts.Put(highestWt, true)
+	domChar := util.NewVectorMap()
+	domChar.Put(highestWt, -1)
 	for {
 		done := true
 		for key := range weightLevelDict {
@@ -86,7 +86,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 							wtSet.Put(newWt, true)
 							weightLevelDict[level+rootLevel] = wtSet
 						}
-						domWts.Put(newWt, true)
+						domChar.Put(newWt, -1)
 					}
 				}
 			}
@@ -102,15 +102,14 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 	}
 	sort.Slice(sortedLevels, func(i, j int) bool { return sortedLevels[i] < sortedLevels[j] })
 
-	domChar := util.NewVectorMap()
 	domChar.Put(highestWt, 1)
 	rho := alg.Rho()
 	for _, level := range sortedLevels {
 		for _, wt := range weightLevelDict[level].Keys() {
 			var freudenthalHelper func(wt Weight)
 			freudenthalHelper = func(wt Weight) {
-				_, present := domChar.Get(wt)
-				if present {
+				mult, present := domChar.Get(wt)
+				if present && mult.(int) >= 0 {
 					return
 				}
 
@@ -128,7 +127,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 							n++
 							shiftedWeight.AddWeights(shiftedWeight, rootWt)
 							newDomWeight.ReflectToChamber(alg, shiftedWeight)
-							_, present := domWts.Get(newDomWeight)
+							_, present := domChar.Get(newDomWeight)
 							if !present {
 								break
 							}
