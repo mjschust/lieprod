@@ -219,90 +219,47 @@ func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
 	domWt.ReflectToChamber(alg, wt)
 	epc := alg.convertWeightToEpc(domWt, append(domWt, 0))
 
-	// Construct list of unique coords and multiplicities
-	uniqCoords := make([]int, 0, len(epc))
-	uniqCoords = append(uniqCoords, epc[0])
-	cur := epc[0]
-	multiplicities := make([]int, 0, len(epc))
-	multiplicities = append(multiplicities, 0)
-	for _, coord := range epc {
-		if coord < cur {
-			uniqCoords = append(uniqCoords, coord)
-			multiplicities = append(multiplicities, 1)
-			cur = coord
-		} else {
-			multiplicities[len(multiplicities)-1]++
-		}
-	}
-
-	// Initialize multiplicity matrix and indices
-	indices := make([]int, 0, len(epc))
-	multMatrix := make([][]int, 0, len(epc)+1)
-	multMatrix = append(multMatrix, multiplicities)
-	for i := range epc {
-		j := 0
-		for ; multMatrix[i][j] == 0; j++ {
-		}
-		indices = append(indices, j)
-
-		newCopy := make([]int, len(multMatrix[i]))
-		copy(newCopy, multMatrix[i])
-		multMatrix = append(multMatrix, newCopy)
-		multMatrix[i+1][j]--
-	}
-
-	return &typeAOrbitIterator{alg, uniqCoords, indices, multMatrix, epc, false}
+	return &typeAOrbitIterator{alg, epc, false}
 }
 
 type typeAOrbitIterator struct {
-	alg        TypeA
-	uniqCoords []int
-	indices    []int
-	multMatrix [][]int
-	epc        []int
-	done       bool
+	alg  TypeA
+	epc  []int
+	done bool
 }
 
 func (iter *typeAOrbitIterator) Next(rslt Weight) Weight {
 	// Construct new weight
-	for i, index := range iter.indices {
-		iter.epc[i] = iter.uniqCoords[index]
-	}
-	iter.alg.convertEpCoord(iter.epc, rslt)
+	epc := iter.epc
+	iter.alg.convertEpCoord(epc, rslt)
 
-	// Find index to increment
-	i := len(iter.indices) - 2
-	j := 0
-	for ; i >= 0; i-- {
-		j = iter.indices[i] + 1
-		for ; j < len(iter.uniqCoords); j++ {
-			if iter.multMatrix[i][j] > 0 {
-				break
-			}
+	// Find first swap elt
+	i := 1
+	iter.done = true
+	for ; i < len(epc); i++ {
+		if epc[i-1] > epc[i] {
+			iter.done = false
+			break
 		}
-		if j < len(iter.uniqCoords) {
+	}
+	if iter.done {
+		return rslt
+	}
+
+	// Find second swap elt
+	j := 0
+	for ; j < i; j++ {
+		if epc[j] > epc[i] {
 			break
 		}
 	}
 
-	// If we're finished, return the last weight
-	if i < 0 {
-		iter.done = true
-		return rslt
-	}
+	// Swap
+	epc[i], epc[j] = epc[j], epc[i]
 
-	// Else, increment indices
-	iter.indices[i] = j
-	copy(iter.multMatrix[i+1], iter.multMatrix[i])
-	iter.multMatrix[i+1][j]--
-	i++
-	for ; i < len(iter.indices); i++ {
-		j := 0
-		for ; iter.multMatrix[i][j] == 0; j++ {
-		}
-		iter.indices[i] = j
-		copy(iter.multMatrix[i+1], iter.multMatrix[i])
-		iter.multMatrix[i+1][j]--
+	// Reverse elts 0...i-1
+	for k := 0; k < i/2; k++ {
+		epc[k], epc[i-k-1] = epc[i-k-1], epc[k]
 	}
 
 	return rslt
@@ -323,8 +280,11 @@ func (alg TypeA) convertWeightToEpc(wt Weight, epc []int) []int {
 }
 
 func (alg TypeA) convertEpCoord(epc []int, retVal Weight) {
-	for i := range retVal {
-		retVal[i] = epc[i] - epc[i+1]
+	part := epc[len(epc)-1]
+	for i := len(epc) - 2; i >= 0; i-- {
+		temp := epc[i]
+		retVal[i] = epc[i] - part
+		part = temp
 	}
 }
 

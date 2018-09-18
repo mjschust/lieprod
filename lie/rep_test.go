@@ -1,6 +1,7 @@
 package lie
 
 import (
+	"math/rand"
 	"testing"
 )
 
@@ -158,17 +159,30 @@ func TestTensor(t *testing.T) {
 	}
 }
 
-func BenchmarkTensor(b *testing.B) {
+func BenchmarkTensorSmall(b *testing.B) {
 	rank := 4
 	level := 4
 	alg := TypeA{rank}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		for i := range wts {
-			for j := range wts {
-				Tensor(alg, wts[i], wts[j])
+		for j := range wts {
+			for k := range wts {
+				Tensor(alg, wts[j], wts[k])
 			}
 		}
+	}
+}
+
+func BenchmarkTensorLarge(b *testing.B) {
+	rank := 6
+	level := 4
+	alg := TypeA{rank}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		j := rand.Intn(len(wts))
+		k := rand.Intn(len(wts))
+		Tensor(alg, wts[j], wts[k])
 	}
 }
