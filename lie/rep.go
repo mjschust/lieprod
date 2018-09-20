@@ -7,6 +7,9 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
+var one *big.Int = big.NewInt(1)
+var two *big.Int = big.NewInt(2)
+
 // ReprDimension returns the dimension of the irreducible representation for the
 // given highest weight.
 func ReprDimension(alg Algebra, highestWt Weight) *big.Int {
@@ -90,7 +93,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 							wtSet.Put(newWt, true)
 							weightLevelDict[level+rootLevel] = wtSet
 						}
-						domChar.Put(newWt, -1)
+						domChar.Put(newWt, nil)
 					}
 				}
 			}
@@ -106,29 +109,33 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 	}
 	sort.Slice(sortedLevels, func(i, j int) bool { return sortedLevels[i] < sortedLevels[j] })
 
-	domChar.Put(highestWt, 1)
+	domChar.Put(highestWt, one)
 	rho := alg.Rho()
 	for _, level := range sortedLevels {
 		for _, wt := range weightLevelDict[level].Keys() {
 			var freudenthalHelper func(wt Weight)
 			freudenthalHelper = func(wt Weight) {
 				mult, present := domChar.Get(wt)
-				if present && mult.(int) >= 0 {
+				if present && mult != nil {
 					return
 				}
 
-				multiplicitySum := 0
+				multiplicitySum := big.NewInt(0)
+				a := big.NewInt(0)
+				b := big.NewInt(0)
+				n := big.NewInt(0)
+				rslt := big.NewInt(0)
 				shiftedWeight := alg.NewWeight()
 				newDomWeight := alg.NewWeight()
 				for _, roots := range rootLevelMap {
 					for _, rootWt := range roots {
-						n := 0
+						n.SetInt64(0)
 						copy(shiftedWeight, wt)
-						a := alg.IntKillingForm(wt, rootWt)
-						b := alg.IntKillingForm(rootWt, rootWt)
+						a.SetInt64(int64(alg.IntKillingForm(wt, rootWt)))
+						b.SetInt64(int64(alg.IntKillingForm(rootWt, rootWt)))
 
 						for {
-							n++
+							n.Add(n, one)
 							shiftedWeight.AddWeights(shiftedWeight, rootWt)
 							alg.reflectToChamber(shiftedWeight, newDomWeight)
 							_, present := domChar.Get(newDomWeight)
@@ -138,17 +145,22 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 
 							freudenthalHelper(newDomWeight)
 							newWeightMultiplicity, _ := domChar.Get(newDomWeight)
-							multiplicitySum += (a + n*b) * newWeightMultiplicity.(int)
+							rslt.Add(a, rslt.Mul(n, b))
+							rslt.Mul(rslt, newWeightMultiplicity.(*big.Int))
+							multiplicitySum.Add(multiplicitySum, rslt)
 						}
 					}
 				}
 
-				numerator := 2 * multiplicitySum
+				numerator := big.NewInt(2)
+				numerator.Mul(numerator, multiplicitySum)
 				shiftedWeight.AddWeights(highestWt, rho)
-				denominator := alg.IntKillingForm(shiftedWeight, shiftedWeight)
+				denominator := big.NewInt(int64(
+					alg.IntKillingForm(shiftedWeight, shiftedWeight)))
 				shiftedWeight.AddWeights(wt, rho)
-				denominator -= alg.IntKillingForm(shiftedWeight, shiftedWeight)
-				domChar.Put(wt, numerator/denominator)
+				rslt.SetInt64(int64(alg.IntKillingForm(shiftedWeight, shiftedWeight)))
+				denominator.Sub(denominator, rslt)
+				domChar.Put(wt, rslt.Div(numerator, denominator))
 			}
 			freudenthalHelper(wt)
 		}
@@ -177,26 +189,35 @@ func Tensor(alg Algebra, wt1, wt2 Weight) util.VectorMap {
 	domWeight := alg.NewWeight()
 	for _, charWeight := range domChar.Keys() {
 		value, _ := domChar.Get(charWeight)
-		domWtMult := value.(int)
+		domWtMult := value.(*big.Int)
 		alg.convertWeightToEpc(charWeight, orbitEpc)
 		done := false
 		for ; !done; done = alg.nextOrbitEpc(orbitEpc) {
+			// Shifted reflection into dominant chamber
 			epc.addEpc(lamRhoSum, orbitEpc)
 			parity := alg.reflectEpcToChamber(epc)
 			epc.subEpc(epc, rho)
 
+			// Check if dominant
 			alg.convertEpCoord(epc, domWeight)
 			if !isDominant(domWeight) {
 				continue
 			}
+
+			// Set new multiplicity
+			rslt := big.NewInt(0)
 			value, present := retDict.Get(domWeight)
 			if present {
-				curMult := value.(int)
-				retDict.Put(domWeight, curMult+parity*domWtMult)
+				curMult := value.(*big.Int)
+				rslt.SetInt64(int64(parity))
+				rslt.Add(curMult, rslt.Mul(rslt, domWtMult))
+				retDict.Put(domWeight, rslt)
 			} else {
 				newDomWeight := alg.NewWeight()
 				copy(newDomWeight, domWeight)
-				retDict.Put(newDomWeight, parity*domWtMult)
+				rslt.SetInt64(int64(parity))
+				rslt.Mul(rslt, domWtMult)
+				retDict.Put(newDomWeight, rslt)
 			}
 		}
 	}

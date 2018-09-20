@@ -80,7 +80,7 @@ func TestDominantChar(t *testing.T) {
 				t.Errorf("DominantChar(%v) missing weight %v", c.highestWt, c.wantWts[i])
 				continue
 			}
-			if gotMult.(int) != c.wantMults[i] {
+			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
 				t.Errorf("DominantChar(%v)[%v] = %v, want %v", c.highestWt, c.wantWts[i], gotMult, c.wantMults[i])
 			}
 		}
@@ -149,7 +149,7 @@ func TestTensor(t *testing.T) {
 				t.Errorf("Tensor(%v, %v) missing weight %v", c.wt1, c.wt2, c.wantWts[i])
 				continue
 			}
-			if gotMult.(int) != c.wantMults[i] {
+			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
 				t.Errorf("Tensor(%v, %v)[%v] = %v, want %v", c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
 			}
 			tensorDecomp.Remove(c.wantWts[i])
