@@ -23,7 +23,7 @@ func TestTypeAConvertWeightToEpc(t *testing.T) {
 
 	for _, c := range cases {
 		got := make([]int, c.alg.rank+1)
-		got = c.alg.convertWeightToEpc(c.wt, got)
+		c.alg.convertWeightToEpc(c.wt, got)
 		if !equals(got, c.want) {
 			t.Errorf("convertWeightToEpc(%v) = %v, want %v", c.wt, got, c.want)
 		}
@@ -278,7 +278,7 @@ func TestTypeADual(t *testing.T) {
 
 	for _, c := range cases {
 		got := c.alg.NewWeight()
-		got.Dual(c.alg, c.wt)
+		c.alg.dual(c.wt, got)
 		if !equals(got, c.want) {
 			t.Errorf("Dual(%v) = %v, want %v", c.wt, got, c.want)
 		}
@@ -304,7 +304,7 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 
 	for _, c := range cases {
 		got := c.alg.NewWeight()
-		parity := got.ReflectToChamber(c.alg, c.wt)
+		parity := c.alg.reflectToChamber(c.wt, got)
 		if !equals(got, c.want) || parity != c.parity {
 			t.Errorf("ReflectToChamber(%v) = %v, %v, want %v, %v",
 				c.wt, got, parity, c.want, c.parity)
@@ -341,11 +341,13 @@ func TestTypeAOrbitIterator(t *testing.T) {
 
 	for _, c := range cases {
 		orbitSet := weightSetFromList(c.orbit)
-		orbitIter := c.alg.NewOrbitIterator(c.wt)
+		var orbitEpc epCoord = make([]int, len(c.wt)+1)
+		c.alg.convertWeightToEpc(c.wt, orbitEpc)
 		orbitSize := 0
-		for orbitIter.HasNext() {
+		done := false
+		for ; !done; done = c.alg.nextOrbitEpc(orbitEpc) {
 			nextWt := c.alg.NewWeight()
-			nextWt = orbitIter.Next(nextWt)
+			c.alg.convertEpCoord(orbitEpc, nextWt)
 			_, present := orbitSet.Get(nextWt)
 			if !present {
 				t.Errorf("OrbitIterator(%v) does not contain %v", c.wt, nextWt)

@@ -186,3 +186,25 @@ func BenchmarkTensorLarge(b *testing.B) {
 		Tensor(alg, wts[j], wts[k])
 	}
 }
+
+func BenchmarkTensorParallel(b *testing.B) {
+	numRoutines := 100
+	rank := 6
+	level := 4
+	alg := TypeA{rank}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		done := make(chan int, numRoutines)
+		for j := 0; j < numRoutines; j++ {
+			go func(c chan int) {
+				Tensor(alg, wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
+				c <- 0
+			}(done)
+		}
+
+		for j := 0; j < numRoutines; j++ {
+			<-done
+		}
+	}
+}

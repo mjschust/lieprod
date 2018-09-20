@@ -3,61 +3,22 @@ package lie
 // Algebra contains type-specific Lie algebra operations.
 type Algebra interface {
 	DualCoxeter() int
-	NewWeight() Weight
 	PositiveRoots() []Root
-	Weights(int) []Weight
-	Rho() Weight
 	KillingForm(Weight, Weight) float64
 	IntKillingForm(Weight, Weight) int
 	KillingFactor() int
+	NewWeight() Weight
+	Weights(int) []Weight
+	Rho() Weight
 	Level(Weight) int
 	dual(Weight, Weight)
 	reflectToChamber(Weight, Weight) int
+	reflectEpcToChamber(epCoord) int
+	nextOrbitEpc(epCoord) bool
+	convertWeightToEpc(Weight, epCoord)
+	newEpc(Weight) epCoord
+	convertEpCoord(epCoord, Weight)
 	convertRoot(Root, Weight)
-	NewOrbitIterator(Weight) OrbitIterator
-}
-
-// Weight represents a weight.
-type Weight []int
-
-// Dual computes the dual of the given weight, with the result stored in the reciever.
-// WARNING: not safe for in-place usage.
-func (rslt Weight) Dual(alg Algebra, wt Weight) {
-	alg.dual(wt, rslt)
-}
-
-// ConvertRoot converts the given root into a weight, with the result stored in the reciever.
-func (rslt Weight) ConvertRoot(alg Algebra, rt Root) {
-	alg.convertRoot(rt, rslt)
-}
-
-// ReflectToChamber reflects wt into the dominant chamber, storing the result in the reciever
-// and returning the parity of the reflection.
-func (rslt Weight) ReflectToChamber(alg Algebra, wt Weight) int {
-	return alg.reflectToChamber(wt, rslt)
-}
-
-// AddWeights adds the given weights and stores the result in the reciever.
-func (rslt Weight) AddWeights(wt1, wt2 Weight) {
-	for i := range wt1 {
-		rslt[i] = wt1[i] + wt2[i]
-	}
-}
-
-// SubWeights subtracts the given weights and stores the result in the reciever.
-func (rslt Weight) SubWeights(wt1, wt2 Weight) {
-	for i := range wt1 {
-		rslt[i] = wt1[i] - wt2[i]
-	}
-}
-
-// Root represents a root in the root lattice.
-type Root []int
-
-// An OrbitIterator supplies an interface to traverse the orbit of a weight.
-type OrbitIterator interface {
-	Next(Weight) Weight
-	HasNext() bool
 }
 
 // TypeA represents the Lie algebra of type A with the specified rank.
@@ -68,11 +29,6 @@ type TypeA struct {
 // DualCoxeter computes the dual Coxeter number of the Lie algebra.
 func (alg TypeA) DualCoxeter() int {
 	return alg.rank + 1
-}
-
-// NewWeight creates a new zero weight.
-func (alg TypeA) NewWeight() Weight {
-	return make([]int, alg.rank, alg.rank+1)
 }
 
 // PositiveRoots builds a list of all positive roots of the Lie algebra.
@@ -95,6 +51,36 @@ func (alg TypeA) PositiveRoots() []Root {
 	}
 
 	return retList
+}
+
+// KillingForm computes the Killing product of the given weights.
+func (alg TypeA) KillingForm(wt1, wt2 Weight) float64 {
+	return float64(alg.IntKillingForm(wt1, wt2)) / float64(alg.KillingFactor())
+}
+
+// IntKillingForm calculates the Killing product normalized so that the product of integral weights is an integer.
+func (alg TypeA) IntKillingForm(wt1, wt2 Weight) int {
+	var part1, part2, product, sum1, sum2 int
+
+	for i := len(wt1) - 1; i >= 0; i-- {
+		part1 += wt1[i]
+		part2 += wt2[i]
+		product += part1 * part2
+		sum1 += part1
+		sum2 += part2
+	}
+
+	return (alg.rank+1)*product - sum1*sum2
+}
+
+// KillingFactor returns IntKillingForm/KillingForm.
+func (alg TypeA) KillingFactor() int {
+	return alg.rank + 1
+}
+
+// NewWeight creates a new zero weight.
+func (alg TypeA) NewWeight() Weight {
+	return make([]int, alg.rank, alg.rank+1)
 }
 
 // Weights returns a slice of all weights with level at most the given int.
@@ -138,31 +124,6 @@ func (alg TypeA) Rho() Weight {
 	return rho
 }
 
-// KillingForm computes the Killing product of the given weights.
-func (alg TypeA) KillingForm(wt1, wt2 Weight) float64 {
-	return float64(alg.IntKillingForm(wt1, wt2)) / float64(alg.KillingFactor())
-}
-
-// IntKillingForm calculates the Killing product normalized so that the product of integral weights is an integer.
-func (alg TypeA) IntKillingForm(wt1, wt2 Weight) int {
-	var part1, part2, product, sum1, sum2 int
-
-	for i := len(wt1) - 1; i >= 0; i-- {
-		part1 += wt1[i]
-		part2 += wt2[i]
-		product += part1 * part2
-		sum1 += part1
-		sum2 += part2
-	}
-
-	return (alg.rank+1)*product - sum1*sum2
-}
-
-// KillingFactor returns IntKillingForm/KillingForm.
-func (alg TypeA) KillingFactor() int {
-	return alg.rank + 1
-}
-
 // Level computes the 'level' of the given weight, i.e. its product with the highest root.
 func (alg TypeA) Level(wt Weight) (lv int) {
 	for i := range wt {
@@ -181,15 +142,16 @@ func (alg TypeA) dual(wt Weight, rslt Weight) {
 // ReflectToChamber reflects the given weight into the dominant chamber and returns
 // the result with reflection parity.
 func (alg TypeA) reflectToChamber(wt Weight, rslt Weight) int {
+	convert := func(wt []int) epCoord { return wt }
 	var epc []int
 	if cap(rslt) > len(rslt) {
-		epc = append(rslt, 0)
-		epc = alg.convertWeightToEpc(wt, epc)
+		epc = append(convert(rslt), 0)
+		alg.convertWeightToEpc(wt, epc)
 	} else {
 		epc = make([]int, alg.rank+1)
-		epc = alg.convertWeightToEpc(wt, epc)
+		alg.convertWeightToEpc(wt, epc)
 	}
-	epc, parity := insertSort(epc)
+	parity := alg.reflectEpcToChamber(epc)
 
 	lastCoord := epc[len(epc)-1]
 	for i := range epc {
@@ -200,50 +162,30 @@ func (alg TypeA) reflectToChamber(wt Weight, rslt Weight) int {
 	return parity
 }
 
-func insertSort(epc []int) (dom []int, parity int) {
-	dom = epc[:]
+func (alg TypeA) reflectEpcToChamber(epc epCoord) (parity int) {
 	parity = 1
 
-	for i := range dom {
-		for j := i; j > 0 && dom[j-1] < dom[j]; j-- {
-			dom[j-1], dom[j] = dom[j], dom[j-1]
+	for i := range epc {
+		for j := i; j > 0 && epc[j-1] < epc[j]; j-- {
+			epc[j-1], epc[j] = epc[j], epc[j-1]
 			parity *= -1
 		}
 	}
 	return
 }
 
-// NewOrbitIterator creates a new OrbitIterator for the given weight.
-func (alg TypeA) NewOrbitIterator(wt Weight) OrbitIterator {
-	domWt := alg.NewWeight()
-	domWt.ReflectToChamber(alg, wt)
-	epc := alg.convertWeightToEpc(domWt, append(domWt, 0))
-
-	return &typeAOrbitIterator{alg, epc, false}
-}
-
-type typeAOrbitIterator struct {
-	alg  TypeA
-	epc  []int
-	done bool
-}
-
-func (iter *typeAOrbitIterator) Next(rslt Weight) Weight {
-	// Construct new weight
-	epc := iter.epc
-	iter.alg.convertEpCoord(epc, rslt)
-
+func (alg TypeA) nextOrbitEpc(epc epCoord) bool {
 	// Find first swap elt
 	i := 1
-	iter.done = true
+	done := true
 	for ; i < len(epc); i++ {
 		if epc[i-1] > epc[i] {
-			iter.done = false
+			done = false
 			break
 		}
 	}
-	if iter.done {
-		return rslt
+	if done {
+		return done
 	}
 
 	// Find second swap elt
@@ -262,24 +204,25 @@ func (iter *typeAOrbitIterator) Next(rslt Weight) Weight {
 		epc[k], epc[i-k-1] = epc[i-k-1], epc[k]
 	}
 
-	return rslt
+	return done
 }
 
-func (iter *typeAOrbitIterator) HasNext() bool {
-	return !iter.done
+func (alg TypeA) newEpc(wt Weight) epCoord {
+	epc := make([]int, len(wt)+1)
+	alg.convertWeightToEpc(wt, epc)
+	return epc
 }
 
-func (alg TypeA) convertWeightToEpc(wt Weight, epc []int) []int {
+func (alg TypeA) convertWeightToEpc(wt Weight, epc epCoord) {
 	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
 		part += wt[i]
 		epc[i] = part
 	}
-
-	return epc
+	epc[len(epc)-1] = 0
 }
 
-func (alg TypeA) convertEpCoord(epc []int, retVal Weight) {
+func (alg TypeA) convertEpCoord(epc epCoord, retVal Weight) {
 	part := epc[len(epc)-1]
 	for i := len(epc) - 2; i >= 0; i-- {
 		temp := epc[i]
@@ -301,4 +244,38 @@ func (alg TypeA) convertRoot(rt Root, rslt Weight) {
 	}
 
 	rslt[len(rt)-1] = 2*rt[len(rt)-1] - rt[len(rt)-2]
+}
+
+// Root represents a root in the root lattice.
+type Root []int
+
+// Weight represents a weight.
+type Weight []int
+
+// AddWeights adds the given weights and stores the result in the reciever.
+func (rslt Weight) AddWeights(wt1, wt2 Weight) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] + wt2[i]
+	}
+}
+
+// SubWeights subtracts the given weights and stores the result in the reciever.
+func (rslt Weight) SubWeights(wt1, wt2 Weight) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] - wt2[i]
+	}
+}
+
+type epCoord []int
+
+func (rslt epCoord) addEpc(wt1, wt2 []int) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] + wt2[i]
+	}
+}
+
+func (rslt epCoord) subEpc(wt1, wt2 []int) {
+	for i := range wt1 {
+		rslt[i] = wt1[i] - wt2[i]
+	}
 }

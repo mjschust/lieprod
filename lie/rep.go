@@ -16,7 +16,7 @@ func ReprDimension(alg Algebra, highestWt Weight) int {
 	denom := 1
 	wtForm := alg.NewWeight()
 	for _, root := range posRoots {
-		wtForm.ConvertRoot(alg, root)
+		alg.convertRoot(root, wtForm)
 		a := alg.IntKillingForm(highestWt, wtForm)
 		b := alg.IntKillingForm(rho, wtForm)
 		numer *= a + b
@@ -38,7 +38,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 		}
 
 		wtForm := alg.NewWeight()
-		wtForm.ConvertRoot(alg, root)
+		alg.convertRoot(root, wtForm)
 		rtList, present := rootLevelMap[level]
 		if present {
 			rootLevelMap[level] = append(rtList, wtForm)
@@ -126,7 +126,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 						for {
 							n++
 							shiftedWeight.AddWeights(shiftedWeight, rootWt)
-							newDomWeight.ReflectToChamber(alg, shiftedWeight)
+							alg.reflectToChamber(shiftedWeight, newDomWeight)
 							_, present := domChar.Get(newDomWeight)
 							if !present {
 								break
@@ -159,23 +159,29 @@ func Tensor(alg Algebra, wt1, wt2 Weight) util.VectorMap {
 		wt1, wt2 = wt2, wt1
 	}
 
-	rho := alg.Rho()
+	// Construct constant weights
+	rho := alg.newEpc(alg.Rho())
 	domChar := DominantChar(alg, wt2)
-	lamRhoSum := alg.NewWeight()
-	lamRhoSum.AddWeights(wt1, rho)
-	retDict := util.NewVectorMap()
-	orbitWeight := alg.NewWeight()
+	lamRhoSumWt := alg.NewWeight()
+	lamRhoSumWt.AddWeights(wt1, alg.Rho())
+	lamRhoSum := alg.newEpc(lamRhoSumWt)
 
+	// Construct return map
+	retDict := util.NewVectorMap()
+	var epc epCoord = make([]int, len(wt1)+1)
+	var orbitEpc epCoord = make([]int, len(wt1)+1)
+	domWeight := alg.NewWeight()
 	for _, charWeight := range domChar.Keys() {
 		value, _ := domChar.Get(charWeight)
 		domWtMult := value.(int)
-		orbitIterator := alg.NewOrbitIterator(charWeight)
-		for orbitIterator.HasNext() {
-			orbitWeight := orbitIterator.Next(orbitWeight)
-			domWeight := orbitWeight
-			domWeight.AddWeights(lamRhoSum, orbitWeight)
-			parity := domWeight.ReflectToChamber(alg, domWeight)
-			domWeight.SubWeights(domWeight, rho)
+		alg.convertWeightToEpc(charWeight, orbitEpc)
+		done := false
+		for ; !done; done = alg.nextOrbitEpc(orbitEpc) {
+			epc.addEpc(lamRhoSum, orbitEpc)
+			parity := alg.reflectEpcToChamber(epc)
+			epc.subEpc(epc, rho)
+
+			alg.convertEpCoord(epc, domWeight)
 			if !isDominant(domWeight) {
 				continue
 			}
