@@ -1,6 +1,7 @@
 package lie
 
 import (
+	"math/big"
 	"math/rand"
 	"testing"
 )
@@ -27,7 +28,7 @@ func TestReprDimension(t *testing.T) {
 
 	for _, c := range cases {
 		got := ReprDimension(c.alg, c.highestWt)
-		if got != c.want {
+		if got.Cmp(big.NewInt(int64(c.want))) != 0 {
 			t.Errorf("ReprDimension(%v, %v) = %v, want %v", c.alg, c.highestWt, got, c.want)
 		}
 	}

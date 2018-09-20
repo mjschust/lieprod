@@ -1,6 +1,7 @@
 package lie
 
 import (
+	"math/big"
 	"sort"
 
 	"github.com/mjschust/cblocks/util"
@@ -8,22 +9,25 @@ import (
 
 // ReprDimension returns the dimension of the irreducible representation for the
 // given highest weight.
-func ReprDimension(alg Algebra, highestWt Weight) int {
+func ReprDimension(alg Algebra, highestWt Weight) *big.Int {
 	rho := alg.Rho()
 	posRoots := alg.PositiveRoots()
 
-	numer := 1
-	denom := 1
+	numer := big.NewInt(1)
+	denom := big.NewInt(1)
+	a := big.NewInt(0)
+	b := big.NewInt(0)
+	rslt := big.NewInt(0)
 	wtForm := alg.NewWeight()
 	for _, root := range posRoots {
 		alg.convertRoot(root, wtForm)
-		a := alg.IntKillingForm(highestWt, wtForm)
-		b := alg.IntKillingForm(rho, wtForm)
-		numer *= a + b
-		denom *= b
+		a.SetInt64(int64(alg.IntKillingForm(highestWt, wtForm)))
+		b.SetInt64(int64(alg.IntKillingForm(rho, wtForm)))
+		numer.Mul(numer, rslt.Add(a, b))
+		denom.Mul(denom, b)
 	}
 
-	return numer / denom
+	return rslt.Div(numer, denom)
 }
 
 // DominantChar builds the dominant character of the representation of the given highest weight.
@@ -155,7 +159,7 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 
 // Tensor computes the tensor product decomposition of the given representations.
 func Tensor(alg Algebra, wt1, wt2 Weight) util.VectorMap {
-	if ReprDimension(alg, wt1) < ReprDimension(alg, wt2) {
+	if ReprDimension(alg, wt1).Cmp(ReprDimension(alg, wt2)) < 0 {
 		wt1, wt2 = wt2, wt1
 	}
 
