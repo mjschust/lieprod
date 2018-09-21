@@ -1,388 +1,214 @@
 package lie
 
 import (
+	"math/big"
+	"math/rand"
 	"testing"
-
-	"github.com/mjschust/cblocks/util"
 )
 
-func TestTypeAConvertWeightToEpc(t *testing.T) {
+func TestReprDimension(t *testing.T) {
 	cases := []struct {
-		rtsys TypeA
-		wt    Weight
-		want  []int
+		rtsys     RootSystem
+		highestWt Weight
+		want      int
 	}{
-		{TypeA{1}, Weight{0}, []int{0, 0}},
-		{TypeA{1}, Weight{1}, []int{1, 0}},
-		{TypeA{1}, Weight{2}, []int{2, 0}},
-		{TypeA{2}, Weight{0, 0}, []int{0, 0, 0}},
-		{TypeA{2}, Weight{1, 0}, []int{1, 0, 0}},
-		{TypeA{2}, Weight{0, 1}, []int{1, 1, 0}},
-		{TypeA{2}, Weight{1, 1}, []int{2, 1, 0}},
+		{TypeA{1}, Weight{0}, 1},
+		{TypeA{1}, Weight{1}, 2},
+		{TypeA{1}, Weight{2}, 3},
+		{TypeA{2}, Weight{0, 0}, 1},
+		{TypeA{2}, Weight{1, 0}, 3},
+		{TypeA{2}, Weight{0, 1}, 3},
+		{TypeA{2}, Weight{1, 1}, 8},
+		{TypeA{2}, Weight{2, 1}, 15},
+		{TypeA{3}, Weight{0, 0, 0}, 1},
+		{TypeA{3}, Weight{1, 0, 0}, 4},
+		{TypeA{3}, Weight{0, 1, 0}, 6},
+		{TypeA{3}, Weight{0, 0, 1}, 4},
 	}
 
 	for _, c := range cases {
-		got := make([]int, c.rtsys.rank+1)
-		c.rtsys.convertWeightToEpc(c.wt, got)
-		if !equals(got, c.want) {
-			t.Errorf("convertWeightToEpc(%v) = %v, want %v", c.wt, got, c.want)
+		alg := NewAlgebra(c.rtsys)
+		got := alg.ReprDimension(c.highestWt)
+		if got.Cmp(big.NewInt(int64(c.want))) != 0 {
+			t.Errorf("ReprDimension(%v, %v) = %v, want %v", c.rtsys, c.highestWt, got, c.want)
 		}
 	}
 }
 
-func TestTypeAConvertEpCoord(t *testing.T) {
+func TestDominantChar(t *testing.T) {
 	cases := []struct {
-		rtsys TypeA
-		epc   []int
-		want  Weight
+		rtsys     RootSystem
+		highestWt Weight
+		wantWts   [][]int
+		wantMults []int
 	}{
-		{TypeA{1}, []int{0, 0}, Weight{0}},
-		{TypeA{1}, []int{1, 1}, Weight{0}},
-		{TypeA{1}, []int{1, 0}, Weight{1}},
-		{TypeA{1}, []int{0, 1}, Weight{-1}},
-		{TypeA{2}, []int{0, 0, 0}, Weight{0, 0}},
-		{TypeA{2}, []int{1, 1, 1}, Weight{0, 0}},
-		{TypeA{2}, []int{1, 0, 0}, Weight{1, 0}},
-		{TypeA{2}, []int{1, 1, 0}, Weight{0, 1}},
-		{TypeA{2}, []int{2, 1, 0}, Weight{1, 1}},
-		{TypeA{2}, []int{1, 2, 0}, Weight{-1, 2}},
+		{TypeA{1}, Weight{0}, [][]int{{0}}, []int{1}},
+		{TypeA{1}, Weight{1}, [][]int{{1}}, []int{1}},
+		{TypeA{1}, Weight{2}, [][]int{{0}, {2}}, []int{1, 1}},
+		{TypeA{1}, Weight{3}, [][]int{{1}, {3}}, []int{1, 1}},
+		{TypeA{1}, Weight{4}, [][]int{{0}, {2}, {4}}, []int{1, 1, 1}},
+		{TypeA{2}, Weight{0, 0}, [][]int{{0, 0}}, []int{1}},
+		{TypeA{2}, Weight{1, 0}, [][]int{{1, 0}}, []int{1}},
+		{TypeA{2}, Weight{0, 1}, [][]int{{0, 1}}, []int{1}},
+		{TypeA{2}, Weight{1, 1}, [][]int{{1, 1}, {0, 0}}, []int{1, 2}},
+		{TypeA{2}, Weight{2, 1}, [][]int{{2, 1}, {1, 0}, {0, 2}}, []int{1, 2, 1}},
+		{TypeA{2}, Weight{2, 3},
+			[][]int{
+				{0, 1},
+				{0, 4},
+				{1, 2},
+				{2, 0},
+				{2, 3},
+				{3, 1}},
+			[]int{3, 1, 2, 2, 1, 1}},
+		{TypeA{3}, Weight{1, 2, 1},
+			[][]int{
+				{0, 0, 0},
+				{0, 1, 2},
+				{0, 2, 0},
+				{1, 0, 1},
+				{1, 2, 1},
+				{2, 0, 2},
+				{2, 1, 0}},
+			[]int{7, 2, 4, 5, 1, 1, 2}},
 	}
 
 	for _, c := range cases {
-		var got Weight = make([]int, c.rtsys.rank)
-		c.rtsys.convertEpCoord(c.epc, got)
-		if !equals(got, c.want) {
-			t.Errorf("convertEpCoord(%v) = %v, want %v", c.epc, got, c.want)
-		}
-	}
-}
-
-func TestTypeADualCoxeter(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		want  int
-	}{
-		{TypeA{1}, 2},
-		{TypeA{2}, 3},
-		{TypeA{3}, 4},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.DualCoxeter()
-		if got != c.want {
-			t.Errorf("DualCoxeter() == %v, want %v", got, c.want)
-		}
-	}
-}
-
-func TestTypeAPositiveRoots(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		want  []Root
-	}{
-		{TypeA{1}, []Root{Root{1}}},
-		{TypeA{2}, []Root{Root{1, 0}, Root{1, 1}, Root{0, 1}}},
-		{TypeA{3}, []Root{
-			Root{1, 0, 0},
-			Root{1, 1, 0},
-			Root{1, 1, 1},
-			Root{0, 1, 0},
-			Root{0, 1, 1},
-			Root{0, 0, 1},
-		}},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.PositiveRoots()
-		if len(got) != len(c.want) {
-			t.Errorf("len(PositiveRoots()) == %v, want %v", len(got), len(c.want))
-		}
-		for i := range c.want {
-			if !equals(got[i], c.want[i]) {
-				t.Errorf("PositiveRoots() == %v, want %v", got, c.want)
-			}
-		}
-	}
-}
-
-func TestTypeAWeights(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		level int
-		want  [][]int
-	}{
-		{TypeA{1}, 0, [][]int{{0}}},
-		{TypeA{1}, 1, [][]int{{0}, {1}}},
-		{TypeA{1}, 2, [][]int{{0}, {1}, {2}}},
-		{TypeA{2}, 0, [][]int{{0, 0}}},
-		{TypeA{2}, 1, [][]int{{0, 0}, {1, 0}, {0, 1}}},
-		{TypeA{2}, 2, [][]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {2, 0}, {0, 2}}},
-		{TypeA{3}, 0, [][]int{
-			{0, 0, 0},
-		}},
-		{TypeA{3}, 1, [][]int{
-			{0, 0, 0},
-			{1, 0, 0},
-			{0, 1, 0},
-			{0, 0, 1},
-		}},
-		{TypeA{3}, 2, [][]int{
-			{0, 0, 0},
-			{1, 0, 0},
-			{0, 1, 0},
-			{0, 0, 1},
-			{1, 1, 0},
-			{0, 1, 1},
-			{1, 0, 1},
-			{2, 0, 0},
-			{0, 2, 0},
-			{0, 0, 2},
-		}},
-	}
-
-	for _, c := range cases {
-		wantSet := util.NewVectorMap()
-		for _, wt := range c.want {
-			wantSet.Put(wt, true)
-		}
-		got := c.rtsys.Weights(c.level)
-		if len(got) != len(c.want) {
-			t.Errorf("len(Weights(%v)) == %v, want %v", c.level, len(got), len(c.want))
-		}
-		for _, gotWt := range got {
-			_, present := wantSet.Remove(gotWt)
+		alg := NewAlgebra(c.rtsys)
+		domChar := alg.DominantChar(c.highestWt)
+		for i := range c.wantWts {
+			gotMult, present := domChar.Get(c.wantWts[i])
 			if !present {
-				t.Errorf("Weights(%v) should not contain %v", c.level, gotWt)
+				t.Errorf("DominantChar(%v) missing weight %v", c.highestWt, c.wantWts[i])
+				continue
+			}
+			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+				t.Errorf("DominantChar(%v)[%v] = %v, want %v", c.highestWt, c.wantWts[i], gotMult, c.wantMults[i])
 			}
 		}
-		if wantSet.Size() != 0 {
-			t.Errorf("Weight(%v) is missing %v", c.level, wantSet.Keys())
-		}
 	}
 }
 
-func TestTypeAKillingForm(t *testing.T) {
+func TestTensor(t *testing.T) {
 	cases := []struct {
-		rtsys    RootSystem
-		wt1, wt2 Weight
-		want     float64
+		rtsys     RootSystem
+		wt1, wt2  Weight
+		wantWts   [][]int
+		wantMults []int
 	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{0}, Weight{1}, 0},
-		{TypeA{1}, Weight{1}, Weight{1}, 0.5},
-		{TypeA{1}, Weight{2}, Weight{1}, 1},
-		{TypeA{1}, Weight{1}, Weight{2}, 1},
-		{TypeA{1}, Weight{2}, Weight{2}, 2},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 0.6666666666666666},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 0.33333333333333333},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 0.33333333333333333},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 0.6666666666666666},
+		{TypeA{1}, Weight{0}, Weight{0},
+			[][]int{{0}},
+			[]int{1}},
+		{TypeA{1}, Weight{1}, Weight{0},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, Weight{0}, Weight{1},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, Weight{1}, Weight{1},
+			[][]int{{2}, {0}},
+			[]int{1, 1}},
+		{TypeA{1}, Weight{2}, Weight{1},
+			[][]int{{3}, {1}},
+			[]int{1, 1}},
+		{TypeA{1}, Weight{2}, Weight{2},
+			[][]int{{4}, {2}, {0}},
+			[]int{1, 1, 1}},
+		{TypeA{2}, Weight{0, 0}, Weight{0, 0},
+			[][]int{{0, 0}},
+			[]int{1}},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 0},
+			[][]int{{1, 0}},
+			[]int{1}},
+		{TypeA{2}, Weight{0, 0}, Weight{0, 1},
+			[][]int{{0, 1}},
+			[]int{1}},
+		{TypeA{2}, Weight{1, 0}, Weight{1, 0},
+			[][]int{{0, 1}, {2, 0}},
+			[]int{1, 1}},
+		{TypeA{2}, Weight{1, 0}, Weight{0, 1},
+			[][]int{{0, 0}, {1, 1}},
+			[]int{1, 1}},
+		{TypeA{2}, Weight{1, 1}, Weight{0, 1},
+			[][]int{{0, 1}, {1, 2}, {2, 0}},
+			[]int{1, 1, 1}},
+		{TypeA{2}, Weight{1, 1}, Weight{1, 1},
+			[][]int{{0, 0}, {0, 3}, {3, 0}, {1, 1}, {2, 2}},
+			[]int{1, 1, 1, 2, 1}},
+		{TypeA{2}, Weight{2, 1}, Weight{1, 1},
+			[][]int{{0, 2}, {1, 0}, {1, 3}, {2, 1}, {3, 2}, {4, 0}},
+			[]int{1, 1, 1, 2, 1, 1}},
+		{TypeA{3}, Weight{1, 0, 1}, Weight{0, 2, 1},
+			[][]int{{0, 1, 3}, {0, 2, 1}, {1, 0, 2}, {1, 1, 0}, {1, 2, 2}, {1, 3, 0}, {2, 1, 1}},
+			[]int{1, 2, 1, 1, 1, 1, 1}},
 	}
 
 	for _, c := range cases {
-		got := c.rtsys.KillingForm(c.wt1, c.wt2)
-		if got != c.want {
-			t.Errorf("KillingForm(%v, %v) == %v, want %v", c.wt1, c.wt2, got, c.want)
-		}
-	}
-}
-
-func TestTypeAIntKillingForm(t *testing.T) {
-	cases := []struct {
-		rtsys    RootSystem
-		wt1, wt2 Weight
-		want     int
-	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{0}, Weight{1}, 0},
-		{TypeA{1}, Weight{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{2}, Weight{1}, 2},
-		{TypeA{1}, Weight{1}, Weight{2}, 2},
-		{TypeA{1}, Weight{2}, Weight{2}, 4},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 2},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 2},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.IntKillingForm(c.wt1, c.wt2)
-		if got != c.want {
-			t.Errorf("KillingForm(%v, %v) == %v, want %v", c.wt1, c.wt2, got, c.want)
-		}
-	}
-}
-
-func TestTypeAKillingFactor(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		want  int
-	}{
-		{TypeA{1}, 2},
-		{TypeA{2}, 3},
-		{TypeA{3}, 4},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.KillingFactor()
-		if got != c.want {
-			t.Errorf("DualCoxeter() == %v, want %v", got, c.want)
-		}
-	}
-}
-
-func TestTypeALevel(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		wt    Weight
-		want  int
-	}{
-		{TypeA{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{2}, 2},
-		{TypeA{2}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{1, 1}, 2},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.Level(c.wt)
-		if got != c.want {
-			t.Errorf("Level(%v) == %v, want %v", c.wt, got, c.want)
-		}
-	}
-}
-
-func TestTypeADual(t *testing.T) {
-	cases := []struct {
-		rtsys    RootSystem
-		wt, want Weight
-	}{
-		{TypeA{1}, Weight{0}, Weight{0}},
-		{TypeA{1}, Weight{1}, Weight{1}},
-		{TypeA{1}, Weight{2}, Weight{2}},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}},
-		{TypeA{2}, Weight{1, 1}, Weight{1, 1}},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.NewWeight()
-		c.rtsys.dual(c.wt, got)
-		if !equals(got, c.want) {
-			t.Errorf("Dual(%v) = %v, want %v", c.wt, got, c.want)
-		}
-	}
-}
-
-func TestTypeAReflectIntoChamber(t *testing.T) {
-	cases := []struct {
-		rtsys    RootSystem
-		wt, want Weight
-		parity   int
-	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 1},
-		{TypeA{1}, Weight{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{-1}, Weight{1}, -1},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 1},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{-1, 0}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{0, -1}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{-1, -1}, Weight{1, 1}, -1},
-	}
-
-	for _, c := range cases {
-		got := c.rtsys.NewWeight()
-		parity := c.rtsys.reflectToChamber(c.wt, got)
-		if !equals(got, c.want) || parity != c.parity {
-			t.Errorf("ReflectToChamber(%v) = %v, %v, want %v, %v",
-				c.wt, got, parity, c.want, c.parity)
-		}
-	}
-}
-
-func TestTypeAOrbitIterator(t *testing.T) {
-	cases := []struct {
-		rtsys RootSystem
-		wt    Weight
-		orbit []Weight
-	}{
-		{TypeA{1}, Weight{0}, []Weight{Weight{0}}},
-		{TypeA{1}, Weight{1}, []Weight{Weight{1}, Weight{-1}}},
-		{TypeA{1}, Weight{2}, []Weight{Weight{2}, Weight{-2}}},
-		{TypeA{2}, Weight{0, 0}, []Weight{Weight{0, 0}}},
-		{TypeA{2}, Weight{1, 0}, []Weight{
-			Weight{1, 0},
-			Weight{-1, 1},
-			Weight{0, -1}}},
-		{TypeA{2}, Weight{0, 1}, []Weight{
-			Weight{0, 1},
-			Weight{1, -1},
-			Weight{-1, 0}}},
-		{TypeA{2}, Weight{1, 1}, []Weight{
-			Weight{1, 1},
-			Weight{-1, 2},
-			Weight{2, -1},
-			Weight{1, -2},
-			Weight{-2, 1},
-			Weight{-1, -1}}},
-	}
-
-	for _, c := range cases {
-		orbitSet := weightSetFromList(c.orbit)
-		var orbitEpc epCoord = make([]int, len(c.wt)+1)
-		c.rtsys.convertWeightToEpc(c.wt, orbitEpc)
-		orbitSize := 0
-		done := false
-		for ; !done; done = c.rtsys.nextOrbitEpc(orbitEpc) {
-			nextWt := c.rtsys.NewWeight()
-			c.rtsys.convertEpCoord(orbitEpc, nextWt)
-			_, present := orbitSet.Get(nextWt)
+		alg := NewAlgebra(c.rtsys)
+		tensorDecomp := alg.Tensor(c.wt1, c.wt2)
+		for i := range c.wantWts {
+			gotMult, present := tensorDecomp.Get(c.wantWts[i])
 			if !present {
-				t.Errorf("OrbitIterator(%v) does not contain %v", c.wt, nextWt)
+				t.Errorf("Tensor(%v, %v) missing weight %v", c.wt1, c.wt2, c.wantWts[i])
+				continue
 			}
-			orbitSize++
+			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+				t.Errorf("Tensor(%v, %v)[%v] = %v, want %v", c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
+			}
+			tensorDecomp.Remove(c.wantWts[i])
 		}
-		if orbitSize != len(c.orbit) {
-			t.Errorf("OrbitIterator(%v) is missing orbit elements", c.wt)
+		if tensorDecomp.Size() != 0 {
+			t.Errorf("Tensor(%v, %v) contains extra weights", c.wt1, c.wt2)
 		}
 	}
 }
 
-func weightSetFromList(wts []Weight) util.VectorMap {
-	vmap := util.NewVectorMap()
-	for _, wt := range wts {
-		vmap.Put(wt, true)
-	}
-
-	return vmap
-}
-
-func equals(v1, v2 []int) bool {
-	if (v1 == nil) != (v2 == nil) {
-		return false
-	}
-
-	if len(v1) != len(v2) {
-		return false
-	}
-
-	for i := range v1 {
-		if v1[i] != v2[i] {
-			return false
+func BenchmarkTensorSmall(b *testing.B) {
+	rank := 4
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		for j := range wts {
+			for k := range wts {
+				alg.Tensor(wts[j], wts[k])
+			}
 		}
 	}
+}
 
-	return true
+func BenchmarkTensorLarge(b *testing.B) {
+	rank := 6
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		j := rand.Intn(len(wts))
+		k := rand.Intn(len(wts))
+		alg.Tensor(wts[j], wts[k])
+	}
+}
+
+func BenchmarkTensorParallel(b *testing.B) {
+	numRoutines := 100
+	rank := 6
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		done := make(chan int, numRoutines)
+		for j := 0; j < numRoutines; j++ {
+			go func(c chan int) {
+				alg.Tensor(wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
+				c <- 0
+			}(done)
+		}
+
+		for j := 0; j < numRoutines; j++ {
+			<-done
+		}
+	}
 }
