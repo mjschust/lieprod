@@ -8,7 +8,7 @@ import (
 
 func TestReprDimension(t *testing.T) {
 	cases := []struct {
-		alg       TypeA
+		rtsys     RootSystem
 		highestWt Weight
 		want      int
 	}{
@@ -27,16 +27,17 @@ func TestReprDimension(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := ReprDimension(c.alg, c.highestWt)
+		alg := NewAlgebra(c.rtsys)
+		got := alg.ReprDimension(c.highestWt)
 		if got.Cmp(big.NewInt(int64(c.want))) != 0 {
-			t.Errorf("ReprDimension(%v, %v) = %v, want %v", c.alg, c.highestWt, got, c.want)
+			t.Errorf("ReprDimension(%v, %v) = %v, want %v", c.rtsys, c.highestWt, got, c.want)
 		}
 	}
 }
 
 func TestDominantChar(t *testing.T) {
 	cases := []struct {
-		alg       TypeA
+		rtsys     RootSystem
 		highestWt Weight
 		wantWts   [][]int
 		wantMults []int
@@ -73,7 +74,8 @@ func TestDominantChar(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		domChar := DominantChar(c.alg, c.highestWt)
+		alg := NewAlgebra(c.rtsys)
+		domChar := alg.DominantChar(c.highestWt)
 		for i := range c.wantWts {
 			gotMult, present := domChar.Get(c.wantWts[i])
 			if !present {
@@ -89,7 +91,7 @@ func TestDominantChar(t *testing.T) {
 
 func TestTensor(t *testing.T) {
 	cases := []struct {
-		alg       TypeA
+		rtsys     RootSystem
 		wt1, wt2  Weight
 		wantWts   [][]int
 		wantMults []int
@@ -142,7 +144,8 @@ func TestTensor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		tensorDecomp := Tensor(c.alg, c.wt1, c.wt2)
+		alg := NewAlgebra(c.rtsys)
+		tensorDecomp := alg.Tensor(c.wt1, c.wt2)
 		for i := range c.wantWts {
 			gotMult, present := tensorDecomp.Get(c.wantWts[i])
 			if !present {
@@ -163,13 +166,13 @@ func TestTensor(t *testing.T) {
 func BenchmarkTensorSmall(b *testing.B) {
 	rank := 4
 	level := 4
-	alg := TypeA{rank}
+	alg := algebraImpl{TypeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		for j := range wts {
 			for k := range wts {
-				Tensor(alg, wts[j], wts[k])
+				alg.Tensor(wts[j], wts[k])
 			}
 		}
 	}
@@ -178,13 +181,13 @@ func BenchmarkTensorSmall(b *testing.B) {
 func BenchmarkTensorLarge(b *testing.B) {
 	rank := 6
 	level := 4
-	alg := TypeA{rank}
+	alg := algebraImpl{TypeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		j := rand.Intn(len(wts))
 		k := rand.Intn(len(wts))
-		Tensor(alg, wts[j], wts[k])
+		alg.Tensor(wts[j], wts[k])
 	}
 }
 
@@ -192,14 +195,14 @@ func BenchmarkTensorParallel(b *testing.B) {
 	numRoutines := 100
 	rank := 6
 	level := 4
-	alg := TypeA{rank}
+	alg := algebraImpl{TypeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		done := make(chan int, numRoutines)
 		for j := 0; j < numRoutines; j++ {
 			go func(c chan int) {
-				Tensor(alg, wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
+				alg.Tensor(wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
 				c <- 0
 			}(done)
 		}

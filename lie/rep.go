@@ -7,12 +7,28 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
-var one *big.Int = big.NewInt(1)
-var two *big.Int = big.NewInt(2)
+var one = big.NewInt(1)
+var two = big.NewInt(2)
+
+// An Algebra supplies representation-theoretic methods acting on Weights.
+type Algebra interface {
+	ReprDimension(Weight) *big.Int
+	DominantChar(Weight) util.VectorMap
+	Tensor(Weight, Weight) util.VectorMap
+}
+
+type algebraImpl struct {
+	RootSystem
+}
+
+// NewAlgebra constructs and returns the lie algebra associated to the given root system.
+func NewAlgebra(rtsys RootSystem) Algebra {
+	return algebraImpl{rtsys}
+}
 
 // ReprDimension returns the dimension of the irreducible representation for the
 // given highest weight.
-func ReprDimension(alg Algebra, highestWt Weight) *big.Int {
+func (alg algebraImpl) ReprDimension(highestWt Weight) *big.Int {
 	rho := alg.Rho()
 	posRoots := alg.PositiveRoots()
 
@@ -34,7 +50,7 @@ func ReprDimension(alg Algebra, highestWt Weight) *big.Int {
 }
 
 // DominantChar builds the dominant character of the representation of the given highest weight.
-func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
+func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 	// Construct root-level map
 	posRoots := alg.PositiveRoots()
 	rootLevelMap := make(map[int][]Weight)
@@ -170,14 +186,14 @@ func DominantChar(alg Algebra, highestWt Weight) util.VectorMap {
 }
 
 // Tensor computes the tensor product decomposition of the given representations.
-func Tensor(alg Algebra, wt1, wt2 Weight) util.VectorMap {
-	if ReprDimension(alg, wt1).Cmp(ReprDimension(alg, wt2)) < 0 {
+func (alg algebraImpl) Tensor(wt1, wt2 Weight) util.VectorMap {
+	if alg.ReprDimension(wt1).Cmp(alg.ReprDimension(wt2)) < 0 {
 		wt1, wt2 = wt2, wt1
 	}
 
 	// Construct constant weights
 	rho := alg.newEpc(alg.Rho())
-	domChar := DominantChar(alg, wt2)
+	domChar := alg.DominantChar(wt2)
 	lamRhoSumWt := alg.NewWeight()
 	lamRhoSumWt.AddWeights(wt1, alg.Rho())
 	lamRhoSum := alg.newEpc(lamRhoSumWt)

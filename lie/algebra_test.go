@@ -8,9 +8,9 @@ import (
 
 func TestTypeAConvertWeightToEpc(t *testing.T) {
 	cases := []struct {
-		alg  TypeA
-		wt   Weight
-		want []int
+		rtsys TypeA
+		wt    Weight
+		want  []int
 	}{
 		{TypeA{1}, Weight{0}, []int{0, 0}},
 		{TypeA{1}, Weight{1}, []int{1, 0}},
@@ -22,8 +22,8 @@ func TestTypeAConvertWeightToEpc(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := make([]int, c.alg.rank+1)
-		c.alg.convertWeightToEpc(c.wt, got)
+		got := make([]int, c.rtsys.rank+1)
+		c.rtsys.convertWeightToEpc(c.wt, got)
 		if !equals(got, c.want) {
 			t.Errorf("convertWeightToEpc(%v) = %v, want %v", c.wt, got, c.want)
 		}
@@ -32,9 +32,9 @@ func TestTypeAConvertWeightToEpc(t *testing.T) {
 
 func TestTypeAConvertEpCoord(t *testing.T) {
 	cases := []struct {
-		alg  TypeA
-		epc  []int
-		want Weight
+		rtsys TypeA
+		epc   []int
+		want  Weight
 	}{
 		{TypeA{1}, []int{0, 0}, Weight{0}},
 		{TypeA{1}, []int{1, 1}, Weight{0}},
@@ -49,8 +49,8 @@ func TestTypeAConvertEpCoord(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		var got Weight = make([]int, c.alg.rank)
-		c.alg.convertEpCoord(c.epc, got)
+		var got Weight = make([]int, c.rtsys.rank)
+		c.rtsys.convertEpCoord(c.epc, got)
 		if !equals(got, c.want) {
 			t.Errorf("convertEpCoord(%v) = %v, want %v", c.epc, got, c.want)
 		}
@@ -59,8 +59,8 @@ func TestTypeAConvertEpCoord(t *testing.T) {
 
 func TestTypeADualCoxeter(t *testing.T) {
 	cases := []struct {
-		alg  Algebra
-		want int
+		rtsys RootSystem
+		want  int
 	}{
 		{TypeA{1}, 2},
 		{TypeA{2}, 3},
@@ -68,7 +68,7 @@ func TestTypeADualCoxeter(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.DualCoxeter()
+		got := c.rtsys.DualCoxeter()
 		if got != c.want {
 			t.Errorf("DualCoxeter() == %v, want %v", got, c.want)
 		}
@@ -77,8 +77,8 @@ func TestTypeADualCoxeter(t *testing.T) {
 
 func TestTypeAPositiveRoots(t *testing.T) {
 	cases := []struct {
-		alg  Algebra
-		want []Root
+		rtsys RootSystem
+		want  []Root
 	}{
 		{TypeA{1}, []Root{Root{1}}},
 		{TypeA{2}, []Root{Root{1, 0}, Root{1, 1}, Root{0, 1}}},
@@ -93,7 +93,7 @@ func TestTypeAPositiveRoots(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.PositiveRoots()
+		got := c.rtsys.PositiveRoots()
 		if len(got) != len(c.want) {
 			t.Errorf("len(PositiveRoots()) == %v, want %v", len(got), len(c.want))
 		}
@@ -107,7 +107,7 @@ func TestTypeAPositiveRoots(t *testing.T) {
 
 func TestTypeAWeights(t *testing.T) {
 	cases := []struct {
-		alg   Algebra
+		rtsys RootSystem
 		level int
 		want  [][]int
 	}{
@@ -145,7 +145,7 @@ func TestTypeAWeights(t *testing.T) {
 		for _, wt := range c.want {
 			wantSet.Put(wt, true)
 		}
-		got := c.alg.Weights(c.level)
+		got := c.rtsys.Weights(c.level)
 		if len(got) != len(c.want) {
 			t.Errorf("len(Weights(%v)) == %v, want %v", c.level, len(got), len(c.want))
 		}
@@ -163,7 +163,7 @@ func TestTypeAWeights(t *testing.T) {
 
 func TestTypeAKillingForm(t *testing.T) {
 	cases := []struct {
-		alg      Algebra
+		rtsys    RootSystem
 		wt1, wt2 Weight
 		want     float64
 	}{
@@ -184,7 +184,7 @@ func TestTypeAKillingForm(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.KillingForm(c.wt1, c.wt2)
+		got := c.rtsys.KillingForm(c.wt1, c.wt2)
 		if got != c.want {
 			t.Errorf("KillingForm(%v, %v) == %v, want %v", c.wt1, c.wt2, got, c.want)
 		}
@@ -193,7 +193,7 @@ func TestTypeAKillingForm(t *testing.T) {
 
 func TestTypeAIntKillingForm(t *testing.T) {
 	cases := []struct {
-		alg      Algebra
+		rtsys    RootSystem
 		wt1, wt2 Weight
 		want     int
 	}{
@@ -214,7 +214,7 @@ func TestTypeAIntKillingForm(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.IntKillingForm(c.wt1, c.wt2)
+		got := c.rtsys.IntKillingForm(c.wt1, c.wt2)
 		if got != c.want {
 			t.Errorf("KillingForm(%v, %v) == %v, want %v", c.wt1, c.wt2, got, c.want)
 		}
@@ -223,8 +223,8 @@ func TestTypeAIntKillingForm(t *testing.T) {
 
 func TestTypeAKillingFactor(t *testing.T) {
 	cases := []struct {
-		alg  Algebra
-		want int
+		rtsys RootSystem
+		want  int
 	}{
 		{TypeA{1}, 2},
 		{TypeA{2}, 3},
@@ -232,7 +232,7 @@ func TestTypeAKillingFactor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.KillingFactor()
+		got := c.rtsys.KillingFactor()
 		if got != c.want {
 			t.Errorf("DualCoxeter() == %v, want %v", got, c.want)
 		}
@@ -241,9 +241,9 @@ func TestTypeAKillingFactor(t *testing.T) {
 
 func TestTypeALevel(t *testing.T) {
 	cases := []struct {
-		alg  Algebra
-		wt   Weight
-		want int
+		rtsys RootSystem
+		wt    Weight
+		want  int
 	}{
 		{TypeA{1}, Weight{0}, 0},
 		{TypeA{1}, Weight{1}, 1},
@@ -255,7 +255,7 @@ func TestTypeALevel(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.Level(c.wt)
+		got := c.rtsys.Level(c.wt)
 		if got != c.want {
 			t.Errorf("Level(%v) == %v, want %v", c.wt, got, c.want)
 		}
@@ -264,7 +264,7 @@ func TestTypeALevel(t *testing.T) {
 
 func TestTypeADual(t *testing.T) {
 	cases := []struct {
-		alg      Algebra
+		rtsys    RootSystem
 		wt, want Weight
 	}{
 		{TypeA{1}, Weight{0}, Weight{0}},
@@ -277,8 +277,8 @@ func TestTypeADual(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.NewWeight()
-		c.alg.dual(c.wt, got)
+		got := c.rtsys.NewWeight()
+		c.rtsys.dual(c.wt, got)
 		if !equals(got, c.want) {
 			t.Errorf("Dual(%v) = %v, want %v", c.wt, got, c.want)
 		}
@@ -287,7 +287,7 @@ func TestTypeADual(t *testing.T) {
 
 func TestTypeAReflectIntoChamber(t *testing.T) {
 	cases := []struct {
-		alg      Algebra
+		rtsys    RootSystem
 		wt, want Weight
 		parity   int
 	}{
@@ -303,8 +303,8 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.alg.NewWeight()
-		parity := c.alg.reflectToChamber(c.wt, got)
+		got := c.rtsys.NewWeight()
+		parity := c.rtsys.reflectToChamber(c.wt, got)
 		if !equals(got, c.want) || parity != c.parity {
 			t.Errorf("ReflectToChamber(%v) = %v, %v, want %v, %v",
 				c.wt, got, parity, c.want, c.parity)
@@ -314,7 +314,7 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 
 func TestTypeAOrbitIterator(t *testing.T) {
 	cases := []struct {
-		alg   Algebra
+		rtsys RootSystem
 		wt    Weight
 		orbit []Weight
 	}{
@@ -342,12 +342,12 @@ func TestTypeAOrbitIterator(t *testing.T) {
 	for _, c := range cases {
 		orbitSet := weightSetFromList(c.orbit)
 		var orbitEpc epCoord = make([]int, len(c.wt)+1)
-		c.alg.convertWeightToEpc(c.wt, orbitEpc)
+		c.rtsys.convertWeightToEpc(c.wt, orbitEpc)
 		orbitSize := 0
 		done := false
-		for ; !done; done = c.alg.nextOrbitEpc(orbitEpc) {
-			nextWt := c.alg.NewWeight()
-			c.alg.convertEpCoord(orbitEpc, nextWt)
+		for ; !done; done = c.rtsys.nextOrbitEpc(orbitEpc) {
+			nextWt := c.rtsys.NewWeight()
+			c.rtsys.convertEpCoord(orbitEpc, nextWt)
 			_, present := orbitSet.Get(nextWt)
 			if !present {
 				t.Errorf("OrbitIterator(%v) does not contain %v", c.wt, nextWt)
