@@ -33,14 +33,14 @@ func (wt Weight) Equals(other Weight) bool {
 // AddWeights adds the given weights and stores the result in the reciever.
 func (wt Weight) AddWeights(wt1, wt2 Weight) {
 	for i := range wt1 {
-		rslt[i] = wt1[i] + wt2[i]
+		wt[i] = wt1[i] + wt2[i]
 	}
 }
 
 // SubWeights subtracts the given weights and stores the result in the reciever.
 func (wt Weight) SubWeights(wt1, wt2 Weight) {
 	for i := range wt1 {
-		rslt[i] = wt1[i] - wt2[i]
+		wt[i] = wt1[i] - wt2[i]
 	}
 }
 
