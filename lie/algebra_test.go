@@ -155,6 +155,36 @@ func TestTensor(t *testing.T) {
 	}
 }
 
+func TestMultiTensor(t *testing.T) {
+	cases := []struct {
+		rtsys     RootSystem
+		wts       []Weight
+		wantWts   [][]int
+		wantMults []int
+	}{
+		{
+			TypeA{2},
+			[]Weight{Weight{1, 0}, Weight{1, 1}, Weight{2, 0}},
+			[][]int{{0, 0}, {0, 3}, {1, 1}, {2, 2}, {3, 0}, {4, 1}},
+			[]int{1, 1, 3, 2, 2, 1}},
+	}
+
+	for _, c := range cases {
+		alg := NewAlgebra(c.rtsys)
+		tensorDecomp := alg.MultiTensor(c.wts...)
+		if len(tensorDecomp.Weights()) != len(c.wantWts) {
+			t.Errorf("Tensor(%v) contains wrong number of weights", c.wts)
+		}
+		for i := range c.wantWts {
+			gotMult := tensorDecomp.Multiplicity(c.wantWts[i])
+			if gotMult.Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+				t.Errorf("Tensor(%v)[%v] = %v, want %v", c.wts, c.wantWts[i], gotMult, c.wantMults[i])
+			}
+		}
+
+	}
+}
+
 func BenchmarkTensorSmall(b *testing.B) {
 	rank := 4
 	level := 4
@@ -167,6 +197,34 @@ func BenchmarkTensorSmall(b *testing.B) {
 				alg.Tensor(wts[j], wts[k])
 			}
 		}
+	}
+}
+
+func BenchmarkMultiTensorSmall(b *testing.B) {
+	rank := 3
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		for j := range wts {
+			alg.MultiTensor(wts[j], wts[j], wts[j])
+		}
+
+	}
+}
+
+func BenchmarkMultiTensorLarge(b *testing.B) {
+	rank := 5
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		j := rand.Intn(len(wts))
+		k := rand.Intn(len(wts))
+		l := rand.Intn(len(wts))
+		alg.MultiTensor(wts[j], wts[k], wts[l])
 	}
 }
 

@@ -58,7 +58,7 @@ func TestSetMultiplicity(t *testing.T) {
 	for _, c := range cases {
 		poly := NewWeightPolyBuilder(c.rank)
 		for _, mono := range c.ms {
-			poly.SetMultiplicity(mono.wt, mono.mult())
+			poly.SetMonomial(mono.wt, mono.mult())
 		}
 
 		for _, mono := range c.want {
@@ -101,7 +101,7 @@ func TestAddMultiplicity(t *testing.T) {
 	for _, c := range cases {
 		poly := NewWeightPolyBuilder(c.rank)
 		for _, mono := range c.ms {
-			poly.AddMultiplicity(mono.wt, mono.mult())
+			poly.AddMonomial(mono.wt, mono.mult())
 		}
 
 		for _, mono := range c.want {

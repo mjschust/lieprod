@@ -12,6 +12,7 @@ type Algebra interface {
 	ReprDimension(Weight) *big.Int
 	DominantChar(Weight) WeightPoly
 	Tensor(Weight, Weight) WeightPoly
+	MultiTensor(...Weight) WeightPoly
 }
 
 type algebraImpl struct {
@@ -106,7 +107,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 							wtSet.Put(polyWeight, true)
 							weightLevelDict[level+rootLevel] = wtSet
 						}
-						domChar.SetMultiplicity(polyWeight, big.NewInt(-1))
+						domChar.SetMonomial(polyWeight, big.NewInt(-1))
 					}
 				}
 			}
@@ -123,7 +124,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 	sort.Slice(sortedLevels, func(i, j int) bool { return sortedLevels[i] < sortedLevels[j] })
 
 	one := big.NewInt(1)
-	domChar.SetMultiplicity(highestWt, one)
+	domChar.SetMonomial(highestWt, one)
 	rho := alg.Rho()
 	for _, level := range sortedLevels {
 		for _, wt := range weightLevelDict[level].Keys() {
@@ -176,7 +177,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 				shiftedWeight.AddWeights(wt, rho)
 				rslt.SetInt64(int64(alg.IntKillingForm(shiftedWeight, shiftedWeight)))
 				denominator.Sub(denominator, rslt)
-				domChar.SetMultiplicity(wt, rslt.Div(numerator, denominator))
+				domChar.SetMonomial(wt, rslt.Div(numerator, denominator))
 			}
 			freudenthalHelper(wt)
 		}
@@ -225,11 +226,28 @@ func (alg algebraImpl) Tensor(wt1, wt2 Weight) WeightPoly {
 			// Set new multiplicity
 			rslt.SetInt64(int64(parity))
 			rslt.Mul(rslt, domWtMult)
-			retPoly.AddMultiplicity(domWeight, rslt)
+			retPoly.AddMonomial(domWeight, rslt)
 		}
 	}
 
 	return retPoly
+}
+
+func (alg algebraImpl) MultiTensor(wts ...Weight) WeightPoly {
+	if len(wts) == 0 {
+		return nil
+	}
+	if len(wts) == 1 {
+		return wts[0]
+	}
+
+	var product WeightPoly = wts[0]
+	var polyProd PolyProduct = alg.Tensor
+	for i := 1; i < len(wts); i++ {
+		product = polyProd.Apply(wts[i], product)
+	}
+
+	return product
 }
 
 func isDominant(wt Weight) bool {

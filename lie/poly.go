@@ -10,8 +10,10 @@ import (
 type WeightPolyBuilder interface {
 	WeightPoly
 	addWeight(wt Weight) Weight
-	SetMultiplicity(Weight, *big.Int)
-	AddMultiplicity(Weight, *big.Int)
+	SetMonomial(Weight, *big.Int)
+	AddMonomial(Weight, *big.Int)
+	Add(WeightPoly)
+	Mult(*big.Int)
 }
 
 type hashPolyBuilder struct {
@@ -22,6 +24,10 @@ type hashPolyBuilder struct {
 // NewWeightPolyBuilder constructs a new WeightPolyBuilder.
 func NewWeightPolyBuilder(rank int) WeightPolyBuilder {
 	return hashPolyBuilder{rank, util.NewVectorMap()}
+}
+
+func (poly hashPolyBuilder) Rank() int {
+	return poly.rank
 }
 
 func (poly hashPolyBuilder) Weights() []Weight {
@@ -52,24 +58,65 @@ func (poly hashPolyBuilder) addWeight(wt Weight) Weight {
 	return wt
 }
 
-func (poly hashPolyBuilder) SetMultiplicity(wt Weight, val *big.Int) {
+func (poly hashPolyBuilder) SetMonomial(wt Weight, val *big.Int) {
 	curVal, present := poly.vmap.Get(wt)
 	if !present {
 		poly.addWeight(wt)
-		poly.SetMultiplicity(wt, val)
+		poly.SetMonomial(wt, val)
 		return
 	}
 
 	poly.vmap.Put(wt, curVal.(*big.Int).Set(val))
 }
 
-func (poly hashPolyBuilder) AddMultiplicity(wt Weight, val *big.Int) {
+func (poly hashPolyBuilder) AddMonomial(wt Weight, val *big.Int) {
 	curVal, present := poly.vmap.Get(wt)
 	if !present {
 		poly.addWeight(wt)
-		poly.AddMultiplicity(wt, val)
+		poly.AddMonomial(wt, val)
 		return
 	}
 
 	poly.vmap.Put(wt, curVal.(*big.Int).Add(curVal.(*big.Int), val))
+}
+
+func (poly hashPolyBuilder) Add(poly2 WeightPoly) {
+	for _, wt := range poly2.Weights() {
+		mult := poly2.Multiplicity(wt)
+		poly.AddMonomial(wt, mult)
+	}
+}
+
+func (poly hashPolyBuilder) Mult(val *big.Int) {
+	for _, wt := range poly.Weights() {
+		curVal, _ := poly.vmap.Get(wt)
+		poly.vmap.Put(wt, curVal.(*big.Int).Mul(curVal.(*big.Int), val))
+	}
+}
+
+// A PolyProduct defines a product on WeightPolys.
+type PolyProduct func(Weight, Weight) WeightPoly
+
+// Apply the PolyProduct to the given WeightPolys.
+func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
+	retPoly := NewWeightPolyBuilder(poly1.Rank())
+	for _, wt := range poly1.Weights() {
+		mult := poly1.Multiplicity(wt)
+		summand := prod.applyWtPoly(wt, poly2)
+		summand.Mult(mult)
+		retPoly.Add(summand)
+	}
+	return retPoly
+}
+
+func (prod PolyProduct) applyWtPoly(wt Weight, poly WeightPoly) WeightPolyBuilder {
+	retPoly := NewWeightPolyBuilder(wt.Rank())
+	for _, wt2 := range poly.Weights() {
+		mult := poly.Multiplicity(wt2)
+		summand := NewWeightPolyBuilder(wt.Rank())
+		summand.Add(prod(wt, wt2))
+		summand.Mult(mult)
+		retPoly.Add(summand)
+	}
+	return retPoly
 }
