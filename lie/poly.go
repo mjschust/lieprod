@@ -9,6 +9,7 @@ import (
 // WeightPolyBuilder is a WeightPoly with additional methods to modify the coefficients.
 type WeightPolyBuilder interface {
 	WeightPoly
+	addWeight(wt Weight) Weight
 	SetMultiplicity(Weight, *big.Int)
 	AddMultiplicity(Weight, *big.Int)
 }
@@ -40,13 +41,15 @@ func (poly hashPolyBuilder) Multiplicity(wt Weight) *big.Int {
 	return big.NewInt(0)
 }
 
-func (poly hashPolyBuilder) addWeight(wt Weight) {
+func (poly hashPolyBuilder) addWeight(wt Weight) Weight {
 	_, present := poly.vmap.Get(wt)
 	if !present {
 		newWt := make([]int, poly.rank)
 		copy(newWt, wt)
 		poly.vmap.Put(newWt, big.NewInt(0))
+		return newWt
 	}
+	return wt
 }
 
 func (poly hashPolyBuilder) SetMultiplicity(wt Weight, val *big.Int) {

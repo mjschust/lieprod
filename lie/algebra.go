@@ -91,21 +91,22 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 			continue
 		}
 
+		newWt := alg.NewWeight()
 		for _, wt := range weightLevelDict[level].Keys() {
 			for rootLevel, roots := range rootLevelMap {
 				for _, root := range roots {
-					newWt := alg.NewWeight()
 					newWt.SubWeights(wt, root)
 					if isDominant(newWt) {
+						polyWeight := domChar.addWeight(newWt)
 						wtSet, present := weightLevelDict[level+rootLevel]
 						if present {
-							wtSet.Put(newWt, true)
+							wtSet.Put(polyWeight, true)
 						} else {
 							wtSet = util.NewVectorMap()
-							wtSet.Put(newWt, true)
+							wtSet.Put(polyWeight, true)
 							weightLevelDict[level+rootLevel] = wtSet
 						}
-						domChar.SetMultiplicity(newWt, big.NewInt(-1))
+						domChar.SetMultiplicity(polyWeight, big.NewInt(-1))
 					}
 				}
 			}
@@ -140,6 +141,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 				rslt := big.NewInt(0)
 				shiftedWeight := alg.NewWeight()
 				newDomWeight := alg.NewWeight()
+				workingEpc := alg.newEpc()
 				for _, roots := range rootLevelMap {
 					for _, rootWt := range roots {
 						n.SetInt64(0)
@@ -150,7 +152,9 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 						for {
 							n.Add(n, one)
 							shiftedWeight.AddWeights(shiftedWeight, rootWt)
-							alg.reflectToChamber(shiftedWeight, newDomWeight)
+							alg.convertWeightToEpc(shiftedWeight, workingEpc)
+							alg.reflectEpcToChamber(workingEpc)
+							alg.convertEpCoord(workingEpc, newDomWeight)
 							if domChar.Multiplicity(newDomWeight).Sign() == 0 {
 								break
 							}
@@ -188,16 +192,18 @@ func (alg algebraImpl) Tensor(wt1, wt2 Weight) WeightPoly {
 	}
 
 	// Construct constant weights
-	rho := alg.newEpc(alg.Rho())
+	rho := alg.newEpc()
+	alg.convertWeightToEpc(alg.Rho(), rho)
 	domChar := alg.DominantChar(wt2)
 	lamRhoSumWt := alg.NewWeight()
 	lamRhoSumWt.AddWeights(wt1, alg.Rho())
-	lamRhoSum := alg.newEpc(lamRhoSumWt)
+	lamRhoSum := alg.newEpc()
+	alg.convertWeightToEpc(lamRhoSumWt, lamRhoSum)
 
 	// Construct return map
 	retPoly := NewWeightPolyBuilder(alg.Rank())
-	var epc epCoord = make([]int, len(wt1)+1)
-	var orbitEpc epCoord = make([]int, len(wt1)+1)
+	var epc = alg.newEpc()
+	var orbitEpc = alg.newEpc()
 	domWeight := alg.NewWeight()
 	rslt := big.NewInt(0)
 	for _, charWeight := range domChar.Weights() {

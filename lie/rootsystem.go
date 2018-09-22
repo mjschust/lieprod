@@ -17,8 +17,8 @@ type RootSystem interface {
 	reflectEpcToChamber(epCoord) int
 	nextOrbitEpc(epCoord) bool
 	convertWeightToEpc(Weight, epCoord)
-	newEpc(Weight) epCoord
 	convertEpCoord(epCoord, Weight)
+	newEpc() epCoord
 	convertRoot(Root, Weight)
 }
 
@@ -148,15 +148,8 @@ func (rtsys TypeA) dual(wt Weight, rslt Weight) {
 // ReflectToChamber reflects the given weight into the dominant chamber and returns
 // the result with reflection parity.
 func (rtsys TypeA) reflectToChamber(wt Weight, rslt Weight) int {
-	convert := func(wt []int) epCoord { return wt }
-	var epc []int
-	if cap(rslt) > len(rslt) {
-		epc = append(convert(rslt), 0)
-		rtsys.convertWeightToEpc(wt, epc)
-	} else {
-		epc = make([]int, rtsys.rank+1)
-		rtsys.convertWeightToEpc(wt, epc)
-	}
+	epc := make([]int, rtsys.rank+1)
+	rtsys.convertWeightToEpc(wt, epc)
 	parity := rtsys.reflectEpcToChamber(epc)
 
 	lastCoord := epc[len(epc)-1]
@@ -213,12 +206,6 @@ func (rtsys TypeA) nextOrbitEpc(epc epCoord) bool {
 	return done
 }
 
-func (rtsys TypeA) newEpc(wt Weight) epCoord {
-	epc := make([]int, len(wt)+1)
-	rtsys.convertWeightToEpc(wt, epc)
-	return epc
-}
-
 func (rtsys TypeA) convertWeightToEpc(wt Weight, epc epCoord) {
 	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
@@ -235,6 +222,11 @@ func (rtsys TypeA) convertEpCoord(epc epCoord, retVal Weight) {
 		retVal[i] = epc[i] - part
 		part = temp
 	}
+}
+
+func (rtsys TypeA) newEpc() epCoord {
+	epc := make([]int, rtsys.rank+1)
+	return epc
 }
 
 // ConvertRoot converts a root into a weight.
