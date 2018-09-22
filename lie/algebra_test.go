@@ -77,12 +77,8 @@ func TestDominantChar(t *testing.T) {
 		alg := NewAlgebra(c.rtsys)
 		domChar := alg.DominantChar(c.highestWt)
 		for i := range c.wantWts {
-			gotMult, present := domChar.Get(c.wantWts[i])
-			if !present {
-				t.Errorf("DominantChar(%v) missing weight %v", c.highestWt, c.wantWts[i])
-				continue
-			}
-			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+			gotMult := domChar.Multiplicity(c.wantWts[i])
+			if gotMult.Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
 				t.Errorf("DominantChar(%v)[%v] = %v, want %v", c.highestWt, c.wantWts[i], gotMult, c.wantMults[i])
 			}
 		}
@@ -146,20 +142,16 @@ func TestTensor(t *testing.T) {
 	for _, c := range cases {
 		alg := NewAlgebra(c.rtsys)
 		tensorDecomp := alg.Tensor(c.wt1, c.wt2)
+		if len(tensorDecomp.Weights()) != len(c.wantWts) {
+			t.Errorf("Tensor(%v, %v) contains wrong number of weights", c.wt1, c.wt2)
+		}
 		for i := range c.wantWts {
-			gotMult, present := tensorDecomp.Get(c.wantWts[i])
-			if !present {
-				t.Errorf("Tensor(%v, %v) missing weight %v", c.wt1, c.wt2, c.wantWts[i])
-				continue
-			}
-			if gotMult.(*big.Int).Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+			gotMult := tensorDecomp.Multiplicity(c.wantWts[i])
+			if gotMult.Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
 				t.Errorf("Tensor(%v, %v)[%v] = %v, want %v", c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
 			}
-			tensorDecomp.Remove(c.wantWts[i])
 		}
-		if tensorDecomp.Size() != 0 {
-			t.Errorf("Tensor(%v, %v) contains extra weights", c.wt1, c.wt2)
-		}
+
 	}
 }
 

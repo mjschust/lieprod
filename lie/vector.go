@@ -4,8 +4,8 @@ import "math/big"
 
 // WeightPoly represents a polynomial of weights with integer coefficients.
 type WeightPoly interface {
-	GetWeights() []Weight
-	GetMultiplicity(Weight) *big.Int
+	Weights() []Weight
+	Multiplicity(Weight) *big.Int
 }
 
 // Weight represents an integral weight in the weight lattice.
@@ -45,12 +45,12 @@ func (wt Weight) SubWeights(wt1, wt2 Weight) {
 }
 
 // GetWeights returns a singleton list of this weight.
-func (wt Weight) GetWeights() []Weight {
+func (wt Weight) Weights() []Weight {
 	return []Weight{wt}
 }
 
-// GetMultiplicity returns one for this weight, zero otherwise.
-func (wt Weight) GetMultiplicity(other Weight) *big.Int {
+// Multiplicity returns one for this weight, zero otherwise.
+func (wt Weight) Multiplicity(other Weight) *big.Int {
 	if wt.Equals(other) {
 		return big.NewInt(1)
 	}

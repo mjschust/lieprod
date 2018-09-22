@@ -7,14 +7,11 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
-var one = big.NewInt(1)
-var two = big.NewInt(2)
-
 // An Algebra supplies representation-theoretic methods acting on Weights.
 type Algebra interface {
 	ReprDimension(Weight) *big.Int
-	DominantChar(Weight) util.VectorMap
-	Tensor(Weight, Weight) util.VectorMap
+	DominantChar(Weight) WeightPoly
+	Tensor(Weight, Weight) WeightPoly
 }
 
 type algebraImpl struct {
@@ -50,7 +47,7 @@ func (alg algebraImpl) ReprDimension(highestWt Weight) *big.Int {
 }
 
 // DominantChar builds the dominant character of the representation of the given highest weight.
-func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
+func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 	// Construct root-level map
 	posRoots := alg.PositiveRoots()
 	rootLevelMap := make(map[int][]Weight)
@@ -75,8 +72,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 	weightLevelDict := make(map[int]util.VectorMap)
 	weightLevelDict[0] = util.NewVectorMap()
 	weightLevelDict[0].Put(highestWt, true)
-	domChar := util.NewVectorMap()
-	domChar.Put(highestWt, -1)
+	domChar := NewWeightPolyBuilder(alg.Rank())
 	for {
 		done := true
 		for key := range weightLevelDict {
@@ -109,7 +105,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 							wtSet.Put(newWt, true)
 							weightLevelDict[level+rootLevel] = wtSet
 						}
-						domChar.Put(newWt, nil)
+						domChar.SetMultiplicity(newWt, big.NewInt(-1))
 					}
 				}
 			}
@@ -125,14 +121,15 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 	}
 	sort.Slice(sortedLevels, func(i, j int) bool { return sortedLevels[i] < sortedLevels[j] })
 
-	domChar.Put(highestWt, one)
+	one := big.NewInt(1)
+	domChar.SetMultiplicity(highestWt, one)
 	rho := alg.Rho()
 	for _, level := range sortedLevels {
 		for _, wt := range weightLevelDict[level].Keys() {
 			var freudenthalHelper func(wt Weight)
 			freudenthalHelper = func(wt Weight) {
-				mult, present := domChar.Get(wt)
-				if present && mult != nil {
+				mult := domChar.Multiplicity(wt)
+				if mult.Sign() > 0 {
 					return
 				}
 
@@ -154,15 +151,14 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 							n.Add(n, one)
 							shiftedWeight.AddWeights(shiftedWeight, rootWt)
 							alg.reflectToChamber(shiftedWeight, newDomWeight)
-							_, present := domChar.Get(newDomWeight)
-							if !present {
+							if domChar.Multiplicity(newDomWeight).Sign() == 0 {
 								break
 							}
 
 							freudenthalHelper(newDomWeight)
-							newWeightMultiplicity, _ := domChar.Get(newDomWeight)
+							newWeightMultiplicity := domChar.Multiplicity(newDomWeight)
 							rslt.Add(a, rslt.Mul(n, b))
-							rslt.Mul(rslt, newWeightMultiplicity.(*big.Int))
+							rslt.Mul(rslt, newWeightMultiplicity)
 							multiplicitySum.Add(multiplicitySum, rslt)
 						}
 					}
@@ -176,7 +172,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 				shiftedWeight.AddWeights(wt, rho)
 				rslt.SetInt64(int64(alg.IntKillingForm(shiftedWeight, shiftedWeight)))
 				denominator.Sub(denominator, rslt)
-				domChar.Put(wt, rslt.Div(numerator, denominator))
+				domChar.SetMultiplicity(wt, rslt.Div(numerator, denominator))
 			}
 			freudenthalHelper(wt)
 		}
@@ -186,7 +182,7 @@ func (alg algebraImpl) DominantChar(highestWt Weight) util.VectorMap {
 }
 
 // Tensor computes the tensor product decomposition of the given representations.
-func (alg algebraImpl) Tensor(wt1, wt2 Weight) util.VectorMap {
+func (alg algebraImpl) Tensor(wt1, wt2 Weight) WeightPoly {
 	if alg.ReprDimension(wt1).Cmp(alg.ReprDimension(wt2)) < 0 {
 		wt1, wt2 = wt2, wt1
 	}
@@ -199,13 +195,13 @@ func (alg algebraImpl) Tensor(wt1, wt2 Weight) util.VectorMap {
 	lamRhoSum := alg.newEpc(lamRhoSumWt)
 
 	// Construct return map
-	retDict := util.NewVectorMap()
+	retPoly := NewWeightPolyBuilder(alg.Rank())
 	var epc epCoord = make([]int, len(wt1)+1)
 	var orbitEpc epCoord = make([]int, len(wt1)+1)
 	domWeight := alg.NewWeight()
-	for _, charWeight := range domChar.Keys() {
-		value, _ := domChar.Get(charWeight)
-		domWtMult := value.(*big.Int)
+	rslt := big.NewInt(0)
+	for _, charWeight := range domChar.Weights() {
+		domWtMult := domChar.Multiplicity(charWeight)
 		alg.convertWeightToEpc(charWeight, orbitEpc)
 		done := false
 		for ; !done; done = alg.nextOrbitEpc(orbitEpc) {
@@ -221,24 +217,13 @@ func (alg algebraImpl) Tensor(wt1, wt2 Weight) util.VectorMap {
 			}
 
 			// Set new multiplicity
-			rslt := big.NewInt(0)
-			value, present := retDict.Get(domWeight)
-			if present {
-				curMult := value.(*big.Int)
-				rslt.SetInt64(int64(parity))
-				rslt.Add(curMult, rslt.Mul(rslt, domWtMult))
-				retDict.Put(domWeight, rslt)
-			} else {
-				newDomWeight := alg.NewWeight()
-				copy(newDomWeight, domWeight)
-				rslt.SetInt64(int64(parity))
-				rslt.Mul(rslt, domWtMult)
-				retDict.Put(newDomWeight, rslt)
-			}
+			rslt.SetInt64(int64(parity))
+			rslt.Mul(rslt, domWtMult)
+			retPoly.AddMultiplicity(domWeight, rslt)
 		}
 	}
 
-	return retDict
+	return retPoly
 }
 
 func isDominant(wt Weight) bool {

@@ -6,8 +6,6 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
-var zero = big.NewInt(0)
-
 // WeightPolyBuilder is a WeightPoly with additional methods to modify the coefficients.
 type WeightPolyBuilder interface {
 	WeightPoly
@@ -16,16 +14,16 @@ type WeightPolyBuilder interface {
 }
 
 type hashPolyBuilder struct {
-	rtsys RootSystem
-	vmap  util.VectorMap
+	rank int
+	vmap util.VectorMap
 }
 
 // NewWeightPolyBuilder constructs a new WeightPolyBuilder.
-func NewWeightPolyBuilder(rtsys RootSystem) WeightPolyBuilder {
-	return hashPolyBuilder{rtsys, util.NewVectorMap()}
+func NewWeightPolyBuilder(rank int) WeightPolyBuilder {
+	return hashPolyBuilder{rank, util.NewVectorMap()}
 }
 
-func (poly hashPolyBuilder) GetWeights() []Weight {
+func (poly hashPolyBuilder) Weights() []Weight {
 	keys := poly.vmap.Keys()
 	retSlc := make([]Weight, len(keys))
 	for i, key := range keys {
@@ -34,18 +32,18 @@ func (poly hashPolyBuilder) GetWeights() []Weight {
 	return retSlc
 }
 
-func (poly hashPolyBuilder) GetMultiplicity(wt Weight) *big.Int {
+func (poly hashPolyBuilder) Multiplicity(wt Weight) *big.Int {
 	val, present := poly.vmap.Get(wt)
 	if present {
 		return val.(*big.Int)
 	}
-	return zero
+	return big.NewInt(0)
 }
 
 func (poly hashPolyBuilder) addWeight(wt Weight) {
 	_, present := poly.vmap.Get(wt)
 	if !present {
-		newWt := poly.rtsys.NewWeight()
+		newWt := make([]int, poly.rank)
 		copy(newWt, wt)
 		poly.vmap.Put(newWt, big.NewInt(0))
 	}

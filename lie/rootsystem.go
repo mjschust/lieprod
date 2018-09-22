@@ -2,6 +2,7 @@ package lie
 
 // RootSystem contains type-specific Lie algebra operations.
 type RootSystem interface {
+	Rank() int
 	DualCoxeter() int
 	PositiveRoots() []Root
 	KillingForm(Weight, Weight) float64
@@ -24,6 +25,11 @@ type RootSystem interface {
 // TypeA represents the Lie algebra of type A with the specified rank.
 type TypeA struct {
 	rank int
+}
+
+// Rank returns the rank of the root system.
+func (rtsys TypeA) Rank() int {
+	return rtsys.rank
 }
 
 // DualCoxeter computes the dual Coxeter number of the Lie algebra.
