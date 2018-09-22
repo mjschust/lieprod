@@ -100,23 +100,15 @@ type PolyProduct func(Weight, Weight) WeightPoly
 // Apply the PolyProduct to the given WeightPolys.
 func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
 	retPoly := NewWeightPolyBuilder(poly1.Rank())
-	for _, wt := range poly1.Weights() {
-		mult := poly1.Multiplicity(wt)
-		summand := prod.applyWtPoly(wt, poly2)
-		summand.Mult(mult)
-		retPoly.Add(summand)
-	}
-	return retPoly
-}
-
-func (prod PolyProduct) applyWtPoly(wt Weight, poly WeightPoly) WeightPolyBuilder {
-	retPoly := NewWeightPolyBuilder(wt.Rank())
-	for _, wt2 := range poly.Weights() {
-		mult := poly.Multiplicity(wt2)
-		summand := NewWeightPolyBuilder(wt.Rank())
-		summand.Add(prod(wt, wt2))
-		summand.Mult(mult)
-		retPoly.Add(summand)
+	for _, wt1 := range poly1.Weights() {
+		mult1 := poly1.Multiplicity(wt1)
+		for _, wt2 := range poly2.Weights() {
+			mult2 := poly2.Multiplicity(wt2)
+			summand := prod(wt1, wt2)
+			summand.(WeightPolyBuilder).Mult(mult1)
+			summand.(WeightPolyBuilder).Mult(mult2)
+			retPoly.Add(summand)
+		}
 	}
 	return retPoly
 }
