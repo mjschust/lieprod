@@ -6,8 +6,8 @@ import (
 	"github.com/mjschust/cblocks/util"
 )
 
-// WeightPolyBuilder is a WeightPoly with additional methods to modify the coefficients.
-type WeightPolyBuilder interface {
+// MutableWeightPoly is a WeightPoly with additional methods to modify the coefficients.
+type MutableWeightPoly interface {
 	WeightPoly
 	addWeight(wt Weight) Weight
 	SetMonomial(Weight, *big.Int)
@@ -21,8 +21,8 @@ type hashPolyBuilder struct {
 	vmap util.VectorMap
 }
 
-// NewWeightPolyBuilder constructs a new WeightPolyBuilder.
-func NewWeightPolyBuilder(rank int) WeightPolyBuilder {
+// NewWeightPolyBuilder constructs a new MutableWeightPoly.
+func NewWeightPolyBuilder(rank int) MutableWeightPoly {
 	return hashPolyBuilder{rank, util.NewVectorMap()}
 }
 
@@ -95,18 +95,50 @@ func (poly hashPolyBuilder) Mult(val *big.Int) {
 }
 
 // A PolyProduct defines a product on WeightPolys.
-type PolyProduct func(Weight, Weight) WeightPoly
+type PolyProduct func(Weight, Weight) MutableWeightPoly
+
+// Reduce applies the product to a list of polynomials
+func (prod PolyProduct) Reduce(polys ...WeightPoly) WeightPoly {
+	if len(polys) == 0 {
+		return nil
+	}
+	if len(polys) == 1 {
+		return polys[0]
+	}
+
+	var product = polys[0]
+	for i := 1; i < len(polys); i++ {
+		product = prod.Apply(product, polys[i])
+	}
+
+	return product
+}
 
 // Apply the PolyProduct to the given WeightPolys.
 func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
+	type monoExpan struct {
+		coeff *big.Int
+		poly  MutableWeightPoly
+	}
 	retPoly := NewWeightPolyBuilder(poly1.Rank())
-	for _, wt1 := range poly1.Weights() {
+	poly1Wts := poly1.Weights()
+	poly2Wts := poly2.Weights()
+	c := make(chan monoExpan)
+	for _, wt1 := range poly1Wts {
 		mult1 := poly1.Multiplicity(wt1)
-		for _, wt2 := range poly2.Weights() {
+		for _, wt2 := range poly2Wts {
 			mult2 := poly2.Multiplicity(wt2)
-			summand := prod(wt1, wt2)
-			summand.(WeightPolyBuilder).Mult(mult1)
-			summand.(WeightPolyBuilder).Mult(mult2)
+			coeff := big.NewInt(0).Mul(mult1, mult2)
+			go func(coeff *big.Int, wt1, wt2 Weight) {
+				c <- monoExpan{coeff, prod(wt1, wt2)}
+			}(coeff, wt1, wt2)
+		}
+	}
+	for range poly1Wts {
+		for range poly2Wts {
+			prodRslt := <-c
+			summand := prodRslt.poly
+			summand.Mult(prodRslt.coeff)
 			retPoly.Add(summand)
 		}
 	}

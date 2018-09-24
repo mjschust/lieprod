@@ -50,7 +50,7 @@ func (wt Weight) Rank() int {
 	return len(wt)
 }
 
-// GetWeights returns a singleton list of this weight.
+// Weights returns a singleton list of this weight.
 func (wt Weight) Weights() []Weight {
 	return []Weight{wt}
 }

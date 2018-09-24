@@ -11,8 +11,7 @@ import (
 type Algebra interface {
 	ReprDimension(Weight) *big.Int
 	DominantChar(Weight) WeightPoly
-	Tensor(Weight, Weight) WeightPoly
-	MultiTensor(...Weight) WeightPoly
+	Tensor(...Weight) WeightPoly
 }
 
 type algebraImpl struct {
@@ -186,8 +185,18 @@ func (alg algebraImpl) DominantChar(highestWt Weight) WeightPoly {
 	return domChar
 }
 
-// Tensor computes the tensor product decomposition of the given representations.
-func (alg algebraImpl) Tensor(wt1, wt2 Weight) WeightPoly {
+// Tensor computes the tensor product expansion of the given list of weights.
+func (alg algebraImpl) Tensor(wts ...Weight) WeightPoly {
+	polys := make([]WeightPoly, len(wts))
+	for i := range wts {
+		polys[i] = wts[i]
+	}
+	var polyProd PolyProduct = alg.tensorProduct
+	return polyProd.Reduce(polys...)
+}
+
+// tensorProduct computes the tensor product decomposition of the given representations.
+func (alg algebraImpl) tensorProduct(wt1, wt2 Weight) MutableWeightPoly {
 	if alg.ReprDimension(wt1).Cmp(alg.ReprDimension(wt2)) < 0 {
 		wt1, wt2 = wt2, wt1
 	}
@@ -231,23 +240,6 @@ func (alg algebraImpl) Tensor(wt1, wt2 Weight) WeightPoly {
 	}
 
 	return retPoly
-}
-
-func (alg algebraImpl) MultiTensor(wts ...Weight) WeightPoly {
-	if len(wts) == 0 {
-		return nil
-	}
-	if len(wts) == 1 {
-		return wts[0]
-	}
-
-	var product WeightPoly = wts[0]
-	var polyProd PolyProduct = alg.Tensor
-	for i := 1; i < len(wts); i++ {
-		product = polyProd.Apply(wts[i], product)
-	}
-
-	return product
 }
 
 func isDominant(wt Weight) bool {

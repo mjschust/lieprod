@@ -140,8 +140,8 @@ func TestTensor(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		alg := NewAlgebra(c.rtsys)
-		tensorDecomp := alg.Tensor(c.wt1, c.wt2)
+		alg := algebraImpl{c.rtsys}
+		tensorDecomp := alg.tensorProduct(c.wt1, c.wt2)
 		if len(tensorDecomp.Weights()) != len(c.wantWts) {
 			t.Errorf("Tensor(%v, %v) contains wrong number of weights", c.wt1, c.wt2)
 		}
@@ -239,7 +239,7 @@ func TestMultiTensor(t *testing.T) {
 
 	for _, c := range cases {
 		alg := NewAlgebra(c.rtsys)
-		tensorDecomp := alg.MultiTensor(c.wts...)
+		tensorDecomp := alg.Tensor(c.wts...)
 		if len(tensorDecomp.Weights()) != len(c.wantWts) {
 			t.Errorf("Tensor(%v) contains wrong number of weights", c.wts)
 		}
@@ -262,7 +262,7 @@ func BenchmarkTensorSmall(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for j := range wts {
 			for k := range wts {
-				alg.Tensor(wts[j], wts[k])
+				alg.tensorProduct(wts[j], wts[k])
 			}
 		}
 	}
@@ -276,7 +276,7 @@ func BenchmarkMultiTensorSmall(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		for j := range wts {
-			alg.MultiTensor(wts[j], wts[j], wts[j])
+			alg.Tensor(wts[j], wts[j], wts[j])
 		}
 
 	}
@@ -292,7 +292,7 @@ func BenchmarkMultiTensorLarge(b *testing.B) {
 		j := rand.Intn(len(wts))
 		k := rand.Intn(len(wts))
 		l := rand.Intn(len(wts))
-		alg.MultiTensor(wts[j], wts[k], wts[l])
+		alg.Tensor(wts[j], wts[k], wts[l])
 	}
 }
 
@@ -305,7 +305,7 @@ func BenchmarkTensorLarge(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		j := rand.Intn(len(wts))
 		k := rand.Intn(len(wts))
-		alg.Tensor(wts[j], wts[k])
+		alg.tensorProduct(wts[j], wts[k])
 	}
 }
 
@@ -320,7 +320,7 @@ func BenchmarkTensorParallel(b *testing.B) {
 		done := make(chan int, numRoutines)
 		for j := 0; j < numRoutines; j++ {
 			go func(c chan int) {
-				alg.Tensor(wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
+				alg.tensorProduct(wts[rand.Intn(len(wts))], wts[rand.Intn(len(wts))])
 				c <- 0
 			}(done)
 		}
