@@ -151,7 +151,64 @@ func TestTensor(t *testing.T) {
 				t.Errorf("Tensor(%v, %v)[%v] = %v, want %v", c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
 			}
 		}
+	}
+}
 
+func TestFusion(t *testing.T) {
+	cases := []struct {
+		rtsys     RootSystem
+		ell       int
+		wt1, wt2  Weight
+		wantWts   [][]int
+		wantMults []int
+	}{
+		{TypeA{1}, 1, Weight{0}, Weight{0},
+			[][]int{{0}},
+			[]int{1}},
+		{TypeA{1}, 1, Weight{1}, Weight{0},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, 1, Weight{0}, Weight{1},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, 1, Weight{1}, Weight{1},
+			[][]int{{0}},
+			[]int{1}},
+		{TypeA{1}, 2, Weight{1}, Weight{1},
+			[][]int{{0}, {2}},
+			[]int{1, 1}},
+		{TypeA{1}, 2, Weight{2}, Weight{1},
+			[][]int{{1}},
+			[]int{1}},
+		{TypeA{1}, 2, Weight{2}, Weight{2},
+			[][]int{{0}, {2}},
+			[]int{1, 1}},
+		{TypeA{2}, 1, Weight{0, 1}, Weight{0, 1},
+			[][]int{{1, 0}},
+			[]int{1}},
+		{TypeA{2}, 1, Weight{0, 1}, Weight{1, 0},
+			[][]int{{0, 0}},
+			[]int{1}},
+		{TypeA{2}, 1, Weight{1, 0}, Weight{1, 0},
+			[][]int{{0, 1}},
+			[]int{1}},
+		{TypeA{2}, 2, Weight{1, 1}, Weight{0, 1},
+			[][]int{{2, 0}, {0, 1}},
+			[]int{1, 1}},
+	}
+
+	for _, c := range cases {
+		alg := algebraImpl{c.rtsys}
+		fusionDecomp := alg.fusionProduct(c.ell, c.wt1, c.wt2)
+		if len(fusionDecomp.Weights()) != len(c.wantWts) {
+			t.Errorf("Fusion(%v, %v, %v) contains wrong number of weights", c.ell, c.wt1, c.wt2)
+		}
+		for i := range c.wantWts {
+			gotMult := fusionDecomp.Multiplicity(c.wantWts[i])
+			if gotMult.Cmp(big.NewInt(int64(c.wantMults[i]))) != 0 {
+				t.Errorf("Fusion(%v, %v, %v)[%v] = %v, want %v", c.ell, c.wt1, c.wt2, c.wantWts[i], gotMult, c.wantMults[i])
+			}
+		}
 	}
 }
 
@@ -328,5 +385,18 @@ func BenchmarkTensorParallel(b *testing.B) {
 		for j := 0; j < numRoutines; j++ {
 			<-done
 		}
+	}
+}
+
+func BenchmarkCBRank(b *testing.B) {
+	rank := 5
+	level := 4
+	alg := algebraImpl{TypeA{rank}}
+	wts := alg.Weights(level)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		wt10 := []Weight{wts[i], wts[i], wts[i], wts[i], wts[i], wts[i], wts[i], wts[i], wts[i], wts[i]}
+		rk := alg.CBRank(level, wt10...)
+		//fmt.Printf("%v: %v\n", wts[i], rk)
 	}
 }

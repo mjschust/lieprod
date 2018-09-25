@@ -12,9 +12,10 @@ type RootSystem interface {
 	Weights(int) []Weight
 	Rho() Weight
 	Level(Weight) int
-	dual(Weight, Weight)
+	Dual(Weight) Weight
 	reflectToChamber(Weight, Weight) int
 	reflectEpcToChamber(epCoord) int
+	reflectEpcToAlcove(epCoord, int) int
 	nextOrbitEpc(epCoord) bool
 	convertWeightToEpc(Weight, epCoord)
 	convertEpCoord(epCoord, Weight)
@@ -139,10 +140,12 @@ func (rtsys TypeA) Level(wt Weight) (lv int) {
 }
 
 // Dual computes the highest weight of the dual repr. of corresponding to the given weight.
-func (rtsys TypeA) dual(wt Weight, rslt Weight) {
+func (rtsys TypeA) Dual(wt Weight) Weight {
+	rslt := rtsys.NewWeight()
 	for i := range wt {
 		rslt[len(wt)-i-1] = wt[i]
 	}
+	return rslt
 }
 
 // ReflectToChamber reflects the given weight into the dominant chamber and returns
@@ -169,6 +172,17 @@ func (rtsys TypeA) reflectEpcToChamber(epc epCoord) (parity int) {
 			epc[j-1], epc[j] = epc[j], epc[j-1]
 			parity *= -1
 		}
+	}
+	return
+}
+
+func (rtsys TypeA) reflectEpcToAlcove(epc epCoord, ell int) (parity int) {
+	parity = rtsys.reflectEpcToChamber(epc)
+
+	r := len(epc) - 1
+	for epc[0]-epc[r] > ell {
+		epc[0], epc[r] = epc[r]+ell, epc[0]-ell
+		parity *= -1 * rtsys.reflectEpcToChamber(epc)
 	}
 	return
 }

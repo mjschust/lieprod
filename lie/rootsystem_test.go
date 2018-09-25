@@ -277,8 +277,7 @@ func TestTypeADual(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := c.rtsys.NewWeight()
-		c.rtsys.dual(c.wt, got)
+		got := c.rtsys.Dual(c.wt)
 		if !equals(got, c.want) {
 			t.Errorf("Dual(%v) = %v, want %v", c.wt, got, c.want)
 		}

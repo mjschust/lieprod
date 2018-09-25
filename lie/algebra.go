@@ -12,6 +12,8 @@ type Algebra interface {
 	ReprDimension(Weight) *big.Int
 	DominantChar(Weight) WeightPoly
 	Tensor(...Weight) WeightPoly
+	Fusion(int, ...Weight) WeightPoly
+	CBRank(int, ...Weight) *big.Int
 }
 
 type algebraImpl struct {
@@ -240,6 +242,65 @@ func (alg algebraImpl) tensorProduct(wt1, wt2 Weight) MutableWeightPoly {
 	}
 
 	return retPoly
+}
+
+// Fusion computes the fusion product expansion of the given list of weights.
+func (alg algebraImpl) Fusion(ell int, wts ...Weight) WeightPoly {
+	polys := make([]WeightPoly, len(wts))
+	for i := range wts {
+		polys[i] = wts[i]
+	}
+	var polyProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
+		return alg.fusionProduct(ell, wt1, wt2)
+	}
+	return polyProd.Reduce(polys...)
+}
+
+// fusionProduct computes the tensor product decomposition of the given representations.
+func (alg algebraImpl) fusionProduct(ell int, wt1, wt2 Weight) MutableWeightPoly {
+	rho := alg.newEpc()
+	alg.convertWeightToEpc(alg.Rho(), rho)
+	rhoLevel := alg.Level(alg.Rho())
+	tensorDecom := alg.tensorProduct(wt1, wt2)
+
+	// Construct return map
+	retPoly := NewWeightPolyBuilder(alg.Rank())
+	domWeight := alg.NewWeight()
+	epc := alg.newEpc()
+	rslt := big.NewInt(0)
+tensorWalk:
+	for _, wt := range tensorDecom.Weights() {
+		if alg.Level(wt) == ell+1 {
+			continue
+		}
+
+		// Shifted reflection into alcove
+		alg.convertWeightToEpc(wt, epc)
+		epc.addEpc(epc, rho)
+		parity := alg.reflectEpcToAlcove(epc, ell+rhoLevel+1)
+		epc.subEpc(epc, rho)
+
+		// Check if dominant
+		prev := ell
+		for i := range epc {
+			if epc[i] > prev {
+				continue tensorWalk
+			}
+		}
+
+		// Set new multiplicity
+		alg.convertEpCoord(epc, domWeight)
+		rslt.SetInt64(int64(parity))
+		rslt.Mul(rslt, tensorDecom.Multiplicity(wt))
+		retPoly.AddMonomial(domWeight, rslt)
+	}
+
+	return retPoly
+}
+
+func (alg algebraImpl) CBRank(ell int, wts ...Weight) *big.Int {
+	dual := alg.Dual(wts[0])
+	return alg.Fusion(ell, wts[1:len(wts)-1]...).Multiplicity(dual)
 }
 
 func isDominant(wt Weight) bool {
