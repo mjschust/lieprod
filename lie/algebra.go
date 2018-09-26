@@ -268,7 +268,6 @@ func (alg algebraImpl) fusionProduct(ell int, wt1, wt2 Weight) MutableWeightPoly
 	domWeight := alg.NewWeight()
 	epc := alg.newEpc()
 	rslt := big.NewInt(0)
-tensorWalk:
 	for _, wt := range tensorDecom.Weights() {
 		if alg.Level(wt) == ell+1 {
 			continue
@@ -281,15 +280,12 @@ tensorWalk:
 		epc.subEpc(epc, rho)
 
 		// Check if dominant
-		prev := ell
-		for i := range epc {
-			if epc[i] > prev {
-				continue tensorWalk
-			}
+		alg.convertEpCoord(epc, domWeight)
+		if !isDominant(domWeight) || alg.Level(domWeight) > ell {
+			continue
 		}
 
 		// Set new multiplicity
-		alg.convertEpCoord(epc, domWeight)
 		rslt.SetInt64(int64(parity))
 		rslt.Mul(rslt, tensorDecom.Multiplicity(wt))
 		retPoly.AddMonomial(domWeight, rslt)
@@ -299,8 +295,18 @@ tensorWalk:
 }
 
 func (alg algebraImpl) CBRank(ell int, wts ...Weight) *big.Int {
-	dual := alg.Dual(wts[0])
-	return alg.Fusion(ell, wts[1:len(wts)-1]...).Multiplicity(dual)
+	fusProd := alg.fusionProduct(ell, wts[0], wts[1])
+	multiFus := alg.Fusion(ell, wts[2:len(wts)]...)
+
+	retVal := big.NewInt(0)
+	rslt := big.NewInt(0)
+	for _, muStar := range fusProd.Weights() {
+		mult1 := fusProd.Multiplicity(muStar)
+		mu := alg.Dual(muStar)
+		mult2 := multiFus.Multiplicity(mu)
+		retVal.Add(retVal, rslt.Mul(mult1, mult2))
+	}
+	return retVal
 }
 
 func isDominant(wt Weight) bool {
