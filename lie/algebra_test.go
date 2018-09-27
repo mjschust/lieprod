@@ -12,18 +12,18 @@ func TestReprDimension(t *testing.T) {
 		highestWt Weight
 		want      int
 	}{
-		{TypeA{1}, Weight{0}, 1},
-		{TypeA{1}, Weight{1}, 2},
-		{TypeA{1}, Weight{2}, 3},
-		{TypeA{2}, Weight{0, 0}, 1},
-		{TypeA{2}, Weight{1, 0}, 3},
-		{TypeA{2}, Weight{0, 1}, 3},
-		{TypeA{2}, Weight{1, 1}, 8},
-		{TypeA{2}, Weight{2, 1}, 15},
-		{TypeA{3}, Weight{0, 0, 0}, 1},
-		{TypeA{3}, Weight{1, 0, 0}, 4},
-		{TypeA{3}, Weight{0, 1, 0}, 6},
-		{TypeA{3}, Weight{0, 0, 1}, 4},
+		{typeA{1}, Weight{0}, 1},
+		{typeA{1}, Weight{1}, 2},
+		{typeA{1}, Weight{2}, 3},
+		{typeA{2}, Weight{0, 0}, 1},
+		{typeA{2}, Weight{1, 0}, 3},
+		{typeA{2}, Weight{0, 1}, 3},
+		{typeA{2}, Weight{1, 1}, 8},
+		{typeA{2}, Weight{2, 1}, 15},
+		{typeA{3}, Weight{0, 0, 0}, 1},
+		{typeA{3}, Weight{1, 0, 0}, 4},
+		{typeA{3}, Weight{0, 1, 0}, 6},
+		{typeA{3}, Weight{0, 0, 1}, 4},
 	}
 
 	for _, c := range cases {
@@ -42,17 +42,17 @@ func TestDominantChar(t *testing.T) {
 		wantWts   [][]int
 		wantMults []int
 	}{
-		{TypeA{1}, Weight{0}, [][]int{{0}}, []int{1}},
-		{TypeA{1}, Weight{1}, [][]int{{1}}, []int{1}},
-		{TypeA{1}, Weight{2}, [][]int{{0}, {2}}, []int{1, 1}},
-		{TypeA{1}, Weight{3}, [][]int{{1}, {3}}, []int{1, 1}},
-		{TypeA{1}, Weight{4}, [][]int{{0}, {2}, {4}}, []int{1, 1, 1}},
-		{TypeA{2}, Weight{0, 0}, [][]int{{0, 0}}, []int{1}},
-		{TypeA{2}, Weight{1, 0}, [][]int{{1, 0}}, []int{1}},
-		{TypeA{2}, Weight{0, 1}, [][]int{{0, 1}}, []int{1}},
-		{TypeA{2}, Weight{1, 1}, [][]int{{1, 1}, {0, 0}}, []int{1, 2}},
-		{TypeA{2}, Weight{2, 1}, [][]int{{2, 1}, {1, 0}, {0, 2}}, []int{1, 2, 1}},
-		{TypeA{2}, Weight{2, 3},
+		{typeA{1}, Weight{0}, [][]int{{0}}, []int{1}},
+		{typeA{1}, Weight{1}, [][]int{{1}}, []int{1}},
+		{typeA{1}, Weight{2}, [][]int{{0}, {2}}, []int{1, 1}},
+		{typeA{1}, Weight{3}, [][]int{{1}, {3}}, []int{1, 1}},
+		{typeA{1}, Weight{4}, [][]int{{0}, {2}, {4}}, []int{1, 1, 1}},
+		{typeA{2}, Weight{0, 0}, [][]int{{0, 0}}, []int{1}},
+		{typeA{2}, Weight{1, 0}, [][]int{{1, 0}}, []int{1}},
+		{typeA{2}, Weight{0, 1}, [][]int{{0, 1}}, []int{1}},
+		{typeA{2}, Weight{1, 1}, [][]int{{1, 1}, {0, 0}}, []int{1, 2}},
+		{typeA{2}, Weight{2, 1}, [][]int{{2, 1}, {1, 0}, {0, 2}}, []int{1, 2, 1}},
+		{typeA{2}, Weight{2, 3},
 			[][]int{
 				{0, 1},
 				{0, 4},
@@ -61,7 +61,7 @@ func TestDominantChar(t *testing.T) {
 				{2, 3},
 				{3, 1}},
 			[]int{3, 1, 2, 2, 1, 1}},
-		{TypeA{3}, Weight{1, 2, 1},
+		{typeA{3}, Weight{1, 2, 1},
 			[][]int{
 				{0, 0, 0},
 				{0, 1, 2},
@@ -92,49 +92,49 @@ func TestTensor(t *testing.T) {
 		wantWts   [][]int
 		wantMults []int
 	}{
-		{TypeA{1}, Weight{0}, Weight{0},
+		{typeA{1}, Weight{0}, Weight{0},
 			[][]int{{0}},
 			[]int{1}},
-		{TypeA{1}, Weight{1}, Weight{0},
+		{typeA{1}, Weight{1}, Weight{0},
 			[][]int{{1}},
 			[]int{1}},
-		{TypeA{1}, Weight{0}, Weight{1},
+		{typeA{1}, Weight{0}, Weight{1},
 			[][]int{{1}},
 			[]int{1}},
-		{TypeA{1}, Weight{1}, Weight{1},
+		{typeA{1}, Weight{1}, Weight{1},
 			[][]int{{2}, {0}},
 			[]int{1, 1}},
-		{TypeA{1}, Weight{2}, Weight{1},
+		{typeA{1}, Weight{2}, Weight{1},
 			[][]int{{3}, {1}},
 			[]int{1, 1}},
-		{TypeA{1}, Weight{2}, Weight{2},
+		{typeA{1}, Weight{2}, Weight{2},
 			[][]int{{4}, {2}, {0}},
 			[]int{1, 1, 1}},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0},
+		{typeA{2}, Weight{0, 0}, Weight{0, 0},
 			[][]int{{0, 0}},
 			[]int{1}},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 0},
+		{typeA{2}, Weight{1, 0}, Weight{0, 0},
 			[][]int{{1, 0}},
 			[]int{1}},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 1},
+		{typeA{2}, Weight{0, 0}, Weight{0, 1},
 			[][]int{{0, 1}},
 			[]int{1}},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0},
+		{typeA{2}, Weight{1, 0}, Weight{1, 0},
 			[][]int{{0, 1}, {2, 0}},
 			[]int{1, 1}},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1},
+		{typeA{2}, Weight{1, 0}, Weight{0, 1},
 			[][]int{{0, 0}, {1, 1}},
 			[]int{1, 1}},
-		{TypeA{2}, Weight{1, 1}, Weight{0, 1},
+		{typeA{2}, Weight{1, 1}, Weight{0, 1},
 			[][]int{{0, 1}, {1, 2}, {2, 0}},
 			[]int{1, 1, 1}},
-		{TypeA{2}, Weight{1, 1}, Weight{1, 1},
+		{typeA{2}, Weight{1, 1}, Weight{1, 1},
 			[][]int{{0, 0}, {0, 3}, {3, 0}, {1, 1}, {2, 2}},
 			[]int{1, 1, 1, 2, 1}},
-		{TypeA{2}, Weight{2, 1}, Weight{1, 1},
+		{typeA{2}, Weight{2, 1}, Weight{1, 1},
 			[][]int{{0, 2}, {1, 0}, {1, 3}, {2, 1}, {3, 2}, {4, 0}},
 			[]int{1, 1, 1, 2, 1, 1}},
-		{TypeA{3}, Weight{1, 0, 1}, Weight{0, 2, 1},
+		{typeA{3}, Weight{1, 0, 1}, Weight{0, 2, 1},
 			[][]int{{0, 1, 3}, {0, 2, 1}, {1, 0, 2}, {1, 1, 0}, {1, 2, 2}, {1, 3, 0}, {2, 1, 1}},
 			[]int{1, 2, 1, 1, 1, 1, 1}},
 	}
@@ -162,43 +162,43 @@ func TestFusion(t *testing.T) {
 		wantWts   [][]int
 		wantMults []int
 	}{
-		{TypeA{1}, 1, Weight{0}, Weight{0},
+		{typeA{1}, 1, Weight{0}, Weight{0},
 			[][]int{{0}},
 			[]int{1}},
-		{TypeA{1}, 1, Weight{1}, Weight{0},
+		{typeA{1}, 1, Weight{1}, Weight{0},
 			[][]int{{1}},
 			[]int{1}},
-		{TypeA{1}, 1, Weight{0}, Weight{1},
+		{typeA{1}, 1, Weight{0}, Weight{1},
 			[][]int{{1}},
 			[]int{1}},
-		{TypeA{1}, 1, Weight{1}, Weight{1},
+		{typeA{1}, 1, Weight{1}, Weight{1},
 			[][]int{{0}},
 			[]int{1}},
-		{TypeA{1}, 2, Weight{1}, Weight{1},
+		{typeA{1}, 2, Weight{1}, Weight{1},
 			[][]int{{0}, {2}},
 			[]int{1, 1}},
-		{TypeA{1}, 2, Weight{2}, Weight{1},
+		{typeA{1}, 2, Weight{2}, Weight{1},
 			[][]int{{1}},
 			[]int{1}},
-		{TypeA{1}, 2, Weight{2}, Weight{2},
+		{typeA{1}, 2, Weight{2}, Weight{2},
 			[][]int{{0}},
 			[]int{1}},
-		{TypeA{2}, 1, Weight{0, 1}, Weight{0, 1},
+		{typeA{2}, 1, Weight{0, 1}, Weight{0, 1},
 			[][]int{{1, 0}},
 			[]int{1}},
-		{TypeA{2}, 1, Weight{0, 1}, Weight{1, 0},
+		{typeA{2}, 1, Weight{0, 1}, Weight{1, 0},
 			[][]int{{0, 0}},
 			[]int{1}},
-		{TypeA{2}, 1, Weight{1, 0}, Weight{1, 0},
+		{typeA{2}, 1, Weight{1, 0}, Weight{1, 0},
 			[][]int{{0, 1}},
 			[]int{1}},
-		{TypeA{2}, 2, Weight{1, 1}, Weight{0, 1},
+		{typeA{2}, 2, Weight{1, 1}, Weight{0, 1},
 			[][]int{{2, 0}, {0, 1}},
 			[]int{1, 1}},
-		{TypeA{2}, 4, Weight{1, 1}, Weight{1, 1},
+		{typeA{2}, 4, Weight{1, 1}, Weight{1, 1},
 			[][]int{{2, 2}, {3, 0}, {0, 3}, {0, 0}, {1, 1}},
 			[]int{1, 1, 1, 1, 2}},
-		{TypeA{2}, 4, Weight{2, 2}, Weight{2, 2},
+		{typeA{2}, 4, Weight{2, 2}, Weight{2, 2},
 			[][]int{{1, 1}, {0, 0}, {2, 2}},
 			[]int{1, 1, 1}},
 	}
@@ -226,67 +226,67 @@ func TestMultiTensor(t *testing.T) {
 		wantMults []int
 	}{
 		{
-			TypeA{1},
+			typeA{1},
 			[]Weight{Weight{0}, Weight{0}, Weight{0}},
 			[][]int{{0}},
 			[]int{1},
 		},
 		{
-			TypeA{1},
+			typeA{1},
 			[]Weight{Weight{1}, Weight{0}, Weight{0}},
 			[][]int{{1}},
 			[]int{1},
 		},
 		{
-			TypeA{1},
+			typeA{1},
 			[]Weight{Weight{1}, Weight{0}, Weight{1}},
 			[][]int{{2}, {0}},
 			[]int{1, 1},
 		},
 		{
-			TypeA{1},
+			typeA{1},
 			[]Weight{Weight{1}, Weight{1}, Weight{1}},
 			[][]int{{3}, {1}},
 			[]int{1, 2},
 		},
 		{
-			TypeA{1},
+			typeA{1},
 			[]Weight{Weight{1}, Weight{1}, Weight{2}},
 			[][]int{{4}, {2}, {0}},
 			[]int{1, 2, 1},
 		},
 		{
-			TypeA{2},
+			typeA{2},
 			[]Weight{Weight{0, 0}, Weight{0, 0}, Weight{0, 0}},
 			[][]int{{0, 0}},
 			[]int{1},
 		},
 		{
-			TypeA{2},
+			typeA{2},
 			[]Weight{Weight{0, 0}, Weight{2, 0}, Weight{0, 0}},
 			[][]int{{2, 0}},
 			[]int{1},
 		},
 		{
-			TypeA{2},
+			typeA{2},
 			[]Weight{Weight{0, 0}, Weight{1, 0}, Weight{0, 1}},
 			[][]int{{0, 0}, {1, 1}},
 			[]int{1, 1},
 		},
 		{
-			TypeA{2},
+			typeA{2},
 			[]Weight{Weight{1, 0}, Weight{1, 1}, Weight{0, 1}},
 			[][]int{{0, 0}, {0, 3}, {1, 1}, {2, 2}, {3, 0}},
 			[]int{1, 1, 3, 1, 1},
 		},
 		{
-			TypeA{2},
+			typeA{2},
 			[]Weight{Weight{1, 0}, Weight{1, 1}, Weight{2, 0}},
 			[][]int{{0, 0}, {0, 3}, {1, 1}, {2, 2}, {3, 0}, {4, 1}},
 			[]int{1, 1, 3, 2, 2, 1},
 		},
 		{
-			TypeA{3},
+			typeA{3},
 			[]Weight{Weight{1, 0, 1}, Weight{0, 2, 1}, Weight{1, 1, 0}, Weight{2, 0, 0}},
 			[][]int{{0, 0, 0}, {0, 0, 4}, {0, 1, 2}, {0, 2, 0}, {0, 2, 4}, {0, 3, 2},
 				{0, 4, 0}, {0, 5, 2}, {0, 6, 0}, {1, 0, 1}, {1, 0, 5}, {1, 1, 3},
@@ -319,7 +319,7 @@ func TestMultiTensor(t *testing.T) {
 func BenchmarkTensorSmall(b *testing.B) {
 	rank := 4
 	level := 4
-	alg := algebraImpl{TypeA{rank}}
+	alg := algebraImpl{typeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -334,7 +334,7 @@ func BenchmarkTensorSmall(b *testing.B) {
 func BenchmarkMultiTensorSmall(b *testing.B) {
 	rank := 3
 	level := 4
-	alg := algebraImpl{TypeA{rank}}
+	alg := algebraImpl{typeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -348,7 +348,7 @@ func BenchmarkMultiTensorSmall(b *testing.B) {
 func BenchmarkMultiTensorLarge(b *testing.B) {
 	rank := 5
 	level := 4
-	alg := algebraImpl{TypeA{rank}}
+	alg := algebraImpl{typeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -362,7 +362,7 @@ func BenchmarkMultiTensorLarge(b *testing.B) {
 func BenchmarkTensorLarge(b *testing.B) {
 	rank := 6
 	level := 4
-	alg := algebraImpl{TypeA{rank}}
+	alg := algebraImpl{typeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -376,7 +376,7 @@ func BenchmarkTensorParallel(b *testing.B) {
 	numRoutines := 100
 	rank := 6
 	level := 4
-	alg := algebraImpl{TypeA{rank}}
+	alg := algebraImpl{typeA{rank}}
 	wts := alg.Weights(level)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -390,30 +390,6 @@ func BenchmarkTensorParallel(b *testing.B) {
 
 		for j := 0; j < numRoutines; j++ {
 			<-done
-		}
-	}
-}
-
-func BenchmarkCBRank(b *testing.B) {
-	rank := 5
-	level := 4
-	alg := algebraImpl{TypeA{rank}}
-	wts := alg.Weights(level)
-	b.ReportAllocs()
-	for i := 0; i < 1; i++ {
-		for j := 0; j < len(wts); j++ {
-			wt10 := []Weight{wts[j], wts[j], wts[j], wts[j], wts[j], wts[j], wts[j], wts[j], wts[j], wts[j]}
-			alg.CBRank(level, wt10...)
-			// if rk.Cmp(big.NewInt(0)) == 0 {
-			// 	continue
-			// }
-			// fmt.Printf("%v: %v\n", wts[j], rk)
-			// prod := alg.fusionProduct(level, wts[j], wts[j])
-			// fmt.Printf("%v: ", wts[j])
-			// for _, wt := range prod.Weights() {
-			// 	fmt.Printf("(%v, %v), ", wt, prod.Multiplicity(wt))
-			// }
-			// fmt.Printf("\n")
 		}
 	}
 }

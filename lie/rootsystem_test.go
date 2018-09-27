@@ -8,17 +8,17 @@ import (
 
 func TestTypeAConvertWeightToEpc(t *testing.T) {
 	cases := []struct {
-		rtsys TypeA
+		rtsys typeA
 		wt    Weight
 		want  []int
 	}{
-		{TypeA{1}, Weight{0}, []int{0, 0}},
-		{TypeA{1}, Weight{1}, []int{1, 0}},
-		{TypeA{1}, Weight{2}, []int{2, 0}},
-		{TypeA{2}, Weight{0, 0}, []int{0, 0, 0}},
-		{TypeA{2}, Weight{1, 0}, []int{1, 0, 0}},
-		{TypeA{2}, Weight{0, 1}, []int{1, 1, 0}},
-		{TypeA{2}, Weight{1, 1}, []int{2, 1, 0}},
+		{typeA{1}, Weight{0}, []int{0, 0}},
+		{typeA{1}, Weight{1}, []int{1, 0}},
+		{typeA{1}, Weight{2}, []int{2, 0}},
+		{typeA{2}, Weight{0, 0}, []int{0, 0, 0}},
+		{typeA{2}, Weight{1, 0}, []int{1, 0, 0}},
+		{typeA{2}, Weight{0, 1}, []int{1, 1, 0}},
+		{typeA{2}, Weight{1, 1}, []int{2, 1, 0}},
 	}
 
 	for _, c := range cases {
@@ -32,20 +32,20 @@ func TestTypeAConvertWeightToEpc(t *testing.T) {
 
 func TestTypeAConvertEpCoord(t *testing.T) {
 	cases := []struct {
-		rtsys TypeA
+		rtsys typeA
 		epc   []int
 		want  Weight
 	}{
-		{TypeA{1}, []int{0, 0}, Weight{0}},
-		{TypeA{1}, []int{1, 1}, Weight{0}},
-		{TypeA{1}, []int{1, 0}, Weight{1}},
-		{TypeA{1}, []int{0, 1}, Weight{-1}},
-		{TypeA{2}, []int{0, 0, 0}, Weight{0, 0}},
-		{TypeA{2}, []int{1, 1, 1}, Weight{0, 0}},
-		{TypeA{2}, []int{1, 0, 0}, Weight{1, 0}},
-		{TypeA{2}, []int{1, 1, 0}, Weight{0, 1}},
-		{TypeA{2}, []int{2, 1, 0}, Weight{1, 1}},
-		{TypeA{2}, []int{1, 2, 0}, Weight{-1, 2}},
+		{typeA{1}, []int{0, 0}, Weight{0}},
+		{typeA{1}, []int{1, 1}, Weight{0}},
+		{typeA{1}, []int{1, 0}, Weight{1}},
+		{typeA{1}, []int{0, 1}, Weight{-1}},
+		{typeA{2}, []int{0, 0, 0}, Weight{0, 0}},
+		{typeA{2}, []int{1, 1, 1}, Weight{0, 0}},
+		{typeA{2}, []int{1, 0, 0}, Weight{1, 0}},
+		{typeA{2}, []int{1, 1, 0}, Weight{0, 1}},
+		{typeA{2}, []int{2, 1, 0}, Weight{1, 1}},
+		{typeA{2}, []int{1, 2, 0}, Weight{-1, 2}},
 	}
 
 	for _, c := range cases {
@@ -62,9 +62,9 @@ func TestTypeADualCoxeter(t *testing.T) {
 		rtsys RootSystem
 		want  int
 	}{
-		{TypeA{1}, 2},
-		{TypeA{2}, 3},
-		{TypeA{3}, 4},
+		{typeA{1}, 2},
+		{typeA{2}, 3},
+		{typeA{3}, 4},
 	}
 
 	for _, c := range cases {
@@ -80,9 +80,9 @@ func TestTypeAPositiveRoots(t *testing.T) {
 		rtsys RootSystem
 		want  []Root
 	}{
-		{TypeA{1}, []Root{Root{1}}},
-		{TypeA{2}, []Root{Root{1, 0}, Root{1, 1}, Root{0, 1}}},
-		{TypeA{3}, []Root{
+		{typeA{1}, []Root{Root{1}}},
+		{typeA{2}, []Root{Root{1, 0}, Root{1, 1}, Root{0, 1}}},
+		{typeA{3}, []Root{
 			Root{1, 0, 0},
 			Root{1, 1, 0},
 			Root{1, 1, 1},
@@ -111,22 +111,22 @@ func TestTypeAWeights(t *testing.T) {
 		level int
 		want  [][]int
 	}{
-		{TypeA{1}, 0, [][]int{{0}}},
-		{TypeA{1}, 1, [][]int{{0}, {1}}},
-		{TypeA{1}, 2, [][]int{{0}, {1}, {2}}},
-		{TypeA{2}, 0, [][]int{{0, 0}}},
-		{TypeA{2}, 1, [][]int{{0, 0}, {1, 0}, {0, 1}}},
-		{TypeA{2}, 2, [][]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {2, 0}, {0, 2}}},
-		{TypeA{3}, 0, [][]int{
+		{typeA{1}, 0, [][]int{{0}}},
+		{typeA{1}, 1, [][]int{{0}, {1}}},
+		{typeA{1}, 2, [][]int{{0}, {1}, {2}}},
+		{typeA{2}, 0, [][]int{{0, 0}}},
+		{typeA{2}, 1, [][]int{{0, 0}, {1, 0}, {0, 1}}},
+		{typeA{2}, 2, [][]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}, {2, 0}, {0, 2}}},
+		{typeA{3}, 0, [][]int{
 			{0, 0, 0},
 		}},
-		{TypeA{3}, 1, [][]int{
+		{typeA{3}, 1, [][]int{
 			{0, 0, 0},
 			{1, 0, 0},
 			{0, 1, 0},
 			{0, 0, 1},
 		}},
-		{TypeA{3}, 2, [][]int{
+		{typeA{3}, 2, [][]int{
 			{0, 0, 0},
 			{1, 0, 0},
 			{0, 1, 0},
@@ -167,20 +167,20 @@ func TestTypeAKillingForm(t *testing.T) {
 		wt1, wt2 Weight
 		want     float64
 	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{0}, Weight{1}, 0},
-		{TypeA{1}, Weight{1}, Weight{1}, 0.5},
-		{TypeA{1}, Weight{2}, Weight{1}, 1},
-		{TypeA{1}, Weight{1}, Weight{2}, 1},
-		{TypeA{1}, Weight{2}, Weight{2}, 2},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 0.6666666666666666},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 0.33333333333333333},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 0.33333333333333333},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 0.6666666666666666},
+		{typeA{1}, Weight{0}, Weight{0}, 0},
+		{typeA{1}, Weight{1}, Weight{0}, 0},
+		{typeA{1}, Weight{0}, Weight{1}, 0},
+		{typeA{1}, Weight{1}, Weight{1}, 0.5},
+		{typeA{1}, Weight{2}, Weight{1}, 1},
+		{typeA{1}, Weight{1}, Weight{2}, 1},
+		{typeA{1}, Weight{2}, Weight{2}, 2},
+		{typeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
+		{typeA{2}, Weight{1, 0}, Weight{1, 0}, 0.6666666666666666},
+		{typeA{2}, Weight{0, 1}, Weight{1, 0}, 0.33333333333333333},
+		{typeA{2}, Weight{1, 0}, Weight{0, 1}, 0.33333333333333333},
+		{typeA{2}, Weight{0, 1}, Weight{0, 1}, 0.6666666666666666},
 	}
 
 	for _, c := range cases {
@@ -197,20 +197,20 @@ func TestTypeAIntKillingForm(t *testing.T) {
 		wt1, wt2 Weight
 		want     int
 	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{0}, Weight{1}, 0},
-		{TypeA{1}, Weight{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{2}, Weight{1}, 2},
-		{TypeA{1}, Weight{1}, Weight{2}, 2},
-		{TypeA{1}, Weight{2}, Weight{2}, 4},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 2},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 2},
+		{typeA{1}, Weight{0}, Weight{0}, 0},
+		{typeA{1}, Weight{1}, Weight{0}, 0},
+		{typeA{1}, Weight{0}, Weight{1}, 0},
+		{typeA{1}, Weight{1}, Weight{1}, 1},
+		{typeA{1}, Weight{2}, Weight{1}, 2},
+		{typeA{1}, Weight{1}, Weight{2}, 2},
+		{typeA{1}, Weight{2}, Weight{2}, 4},
+		{typeA{2}, Weight{0, 0}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{1, 0}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{0, 0}, Weight{1, 0}, 0},
+		{typeA{2}, Weight{1, 0}, Weight{1, 0}, 2},
+		{typeA{2}, Weight{0, 1}, Weight{1, 0}, 1},
+		{typeA{2}, Weight{1, 0}, Weight{0, 1}, 1},
+		{typeA{2}, Weight{0, 1}, Weight{0, 1}, 2},
 	}
 
 	for _, c := range cases {
@@ -226,9 +226,9 @@ func TestTypeAKillingFactor(t *testing.T) {
 		rtsys RootSystem
 		want  int
 	}{
-		{TypeA{1}, 2},
-		{TypeA{2}, 3},
-		{TypeA{3}, 4},
+		{typeA{1}, 2},
+		{typeA{2}, 3},
+		{typeA{3}, 4},
 	}
 
 	for _, c := range cases {
@@ -245,13 +245,13 @@ func TestTypeALevel(t *testing.T) {
 		wt    Weight
 		want  int
 	}{
-		{TypeA{1}, Weight{0}, 0},
-		{TypeA{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{2}, 2},
-		{TypeA{2}, Weight{0, 0}, 0},
-		{TypeA{2}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{1, 1}, 2},
+		{typeA{1}, Weight{0}, 0},
+		{typeA{1}, Weight{1}, 1},
+		{typeA{1}, Weight{2}, 2},
+		{typeA{2}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{1, 0}, 1},
+		{typeA{2}, Weight{0, 1}, 1},
+		{typeA{2}, Weight{1, 1}, 2},
 	}
 
 	for _, c := range cases {
@@ -267,13 +267,13 @@ func TestTypeADual(t *testing.T) {
 		rtsys    RootSystem
 		wt, want Weight
 	}{
-		{TypeA{1}, Weight{0}, Weight{0}},
-		{TypeA{1}, Weight{1}, Weight{1}},
-		{TypeA{1}, Weight{2}, Weight{2}},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}},
-		{TypeA{2}, Weight{1, 0}, Weight{0, 1}},
-		{TypeA{2}, Weight{0, 1}, Weight{1, 0}},
-		{TypeA{2}, Weight{1, 1}, Weight{1, 1}},
+		{typeA{1}, Weight{0}, Weight{0}},
+		{typeA{1}, Weight{1}, Weight{1}},
+		{typeA{1}, Weight{2}, Weight{2}},
+		{typeA{2}, Weight{0, 0}, Weight{0, 0}},
+		{typeA{2}, Weight{1, 0}, Weight{0, 1}},
+		{typeA{2}, Weight{0, 1}, Weight{1, 0}},
+		{typeA{2}, Weight{1, 1}, Weight{1, 1}},
 	}
 
 	for _, c := range cases {
@@ -290,15 +290,15 @@ func TestTypeAReflectIntoChamber(t *testing.T) {
 		wt, want Weight
 		parity   int
 	}{
-		{TypeA{1}, Weight{0}, Weight{0}, 1},
-		{TypeA{1}, Weight{1}, Weight{1}, 1},
-		{TypeA{1}, Weight{-1}, Weight{1}, -1},
-		{TypeA{2}, Weight{0, 0}, Weight{0, 0}, 1},
-		{TypeA{2}, Weight{1, 0}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{0, 1}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{-1, 0}, Weight{0, 1}, 1},
-		{TypeA{2}, Weight{0, -1}, Weight{1, 0}, 1},
-		{TypeA{2}, Weight{-1, -1}, Weight{1, 1}, -1},
+		{typeA{1}, Weight{0}, Weight{0}, 1},
+		{typeA{1}, Weight{1}, Weight{1}, 1},
+		{typeA{1}, Weight{-1}, Weight{1}, -1},
+		{typeA{2}, Weight{0, 0}, Weight{0, 0}, 1},
+		{typeA{2}, Weight{1, 0}, Weight{1, 0}, 1},
+		{typeA{2}, Weight{0, 1}, Weight{0, 1}, 1},
+		{typeA{2}, Weight{-1, 0}, Weight{0, 1}, 1},
+		{typeA{2}, Weight{0, -1}, Weight{1, 0}, 1},
+		{typeA{2}, Weight{-1, -1}, Weight{1, 1}, -1},
 	}
 
 	for _, c := range cases {
@@ -317,19 +317,19 @@ func TestTypeAOrbitIterator(t *testing.T) {
 		wt    Weight
 		orbit []Weight
 	}{
-		{TypeA{1}, Weight{0}, []Weight{Weight{0}}},
-		{TypeA{1}, Weight{1}, []Weight{Weight{1}, Weight{-1}}},
-		{TypeA{1}, Weight{2}, []Weight{Weight{2}, Weight{-2}}},
-		{TypeA{2}, Weight{0, 0}, []Weight{Weight{0, 0}}},
-		{TypeA{2}, Weight{1, 0}, []Weight{
+		{typeA{1}, Weight{0}, []Weight{Weight{0}}},
+		{typeA{1}, Weight{1}, []Weight{Weight{1}, Weight{-1}}},
+		{typeA{1}, Weight{2}, []Weight{Weight{2}, Weight{-2}}},
+		{typeA{2}, Weight{0, 0}, []Weight{Weight{0, 0}}},
+		{typeA{2}, Weight{1, 0}, []Weight{
 			Weight{1, 0},
 			Weight{-1, 1},
 			Weight{0, -1}}},
-		{TypeA{2}, Weight{0, 1}, []Weight{
+		{typeA{2}, Weight{0, 1}, []Weight{
 			Weight{0, 1},
 			Weight{1, -1},
 			Weight{-1, 0}}},
-		{TypeA{2}, Weight{1, 1}, []Weight{
+		{typeA{2}, Weight{1, 1}, []Weight{
 			Weight{1, 1},
 			Weight{-1, 2},
 			Weight{2, -1},

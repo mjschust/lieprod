@@ -23,23 +23,28 @@ type RootSystem interface {
 	convertRoot(Root, Weight)
 }
 
-// TypeA represents the Lie algebra of type A with the specified rank.
-type TypeA struct {
+// NewTypeARootSystem constructs a new type A root system of given rank.
+func NewTypeARootSystem(rank int) RootSystem {
+	return typeA{rank}
+}
+
+// typeA represents the Lie algebra of type A with the specified rank.
+type typeA struct {
 	rank int
 }
 
 // Rank returns the rank of the root system.
-func (rtsys TypeA) Rank() int {
+func (rtsys typeA) Rank() int {
 	return rtsys.rank
 }
 
 // DualCoxeter computes the dual Coxeter number of the Lie algebra.
-func (rtsys TypeA) DualCoxeter() int {
+func (rtsys typeA) DualCoxeter() int {
 	return rtsys.rank + 1
 }
 
 // PositiveRoots builds a list of all positive roots of the Lie algebra.
-func (rtsys TypeA) PositiveRoots() []Root {
+func (rtsys typeA) PositiveRoots() []Root {
 	retList := make([]Root, 0, rtsys.rank*(rtsys.rank+1)/2)
 	root := make([]int, rtsys.rank)
 
@@ -61,12 +66,12 @@ func (rtsys TypeA) PositiveRoots() []Root {
 }
 
 // KillingForm computes the Killing product of the given weights.
-func (rtsys TypeA) KillingForm(wt1, wt2 Weight) float64 {
+func (rtsys typeA) KillingForm(wt1, wt2 Weight) float64 {
 	return float64(rtsys.IntKillingForm(wt1, wt2)) / float64(rtsys.KillingFactor())
 }
 
 // IntKillingForm calculates the Killing product normalized so that the product of integral weights is an integer.
-func (rtsys TypeA) IntKillingForm(wt1, wt2 Weight) int {
+func (rtsys typeA) IntKillingForm(wt1, wt2 Weight) int {
 	var part1, part2, product, sum1, sum2 int
 
 	for i := len(wt1) - 1; i >= 0; i-- {
@@ -81,17 +86,17 @@ func (rtsys TypeA) IntKillingForm(wt1, wt2 Weight) int {
 }
 
 // KillingFactor returns IntKillingForm/KillingForm.
-func (rtsys TypeA) KillingFactor() int {
+func (rtsys typeA) KillingFactor() int {
 	return rtsys.rank + 1
 }
 
 // NewWeight creates a new zero weight.
-func (rtsys TypeA) NewWeight() Weight {
+func (rtsys typeA) NewWeight() Weight {
 	return make([]int, rtsys.rank, rtsys.rank+1)
 }
 
 // Weights returns a slice of all weights with level at most the given int.
-func (rtsys TypeA) Weights(level int) []Weight {
+func (rtsys typeA) Weights(level int) []Weight {
 	var weightsHelper func(rank int) []Weight
 	weightsHelper = func(rank int) []Weight {
 		retList := make([]Weight, 0)
@@ -122,7 +127,7 @@ func (rtsys TypeA) Weights(level int) []Weight {
 }
 
 // Rho returns one-half the sum of the positive roots of the algebra.
-func (rtsys TypeA) Rho() Weight {
+func (rtsys typeA) Rho() Weight {
 	rho := rtsys.NewWeight()
 	for i := 0; i < rtsys.rank; i++ {
 		rho[i] = 1
@@ -132,7 +137,7 @@ func (rtsys TypeA) Rho() Weight {
 }
 
 // Level computes the 'level' of the given weight, i.e. its product with the highest root.
-func (rtsys TypeA) Level(wt Weight) (lv int) {
+func (rtsys typeA) Level(wt Weight) (lv int) {
 	for i := range wt {
 		lv += wt[i]
 	}
@@ -140,7 +145,7 @@ func (rtsys TypeA) Level(wt Weight) (lv int) {
 }
 
 // Dual computes the highest weight of the dual repr. of corresponding to the given weight.
-func (rtsys TypeA) Dual(wt Weight) Weight {
+func (rtsys typeA) Dual(wt Weight) Weight {
 	rslt := rtsys.NewWeight()
 	for i := range wt {
 		rslt[len(wt)-i-1] = wt[i]
@@ -150,7 +155,7 @@ func (rtsys TypeA) Dual(wt Weight) Weight {
 
 // ReflectToChamber reflects the given weight into the dominant chamber and returns
 // the result with reflection parity.
-func (rtsys TypeA) reflectToChamber(wt Weight, rslt Weight) int {
+func (rtsys typeA) reflectToChamber(wt Weight, rslt Weight) int {
 	epc := make([]int, rtsys.rank+1)
 	rtsys.convertWeightToEpc(wt, epc)
 	parity := rtsys.reflectEpcToChamber(epc)
@@ -164,7 +169,7 @@ func (rtsys TypeA) reflectToChamber(wt Weight, rslt Weight) int {
 	return parity
 }
 
-func (rtsys TypeA) reflectEpcToChamber(epc epCoord) (parity int) {
+func (rtsys typeA) reflectEpcToChamber(epc epCoord) (parity int) {
 	parity = 1
 
 	for i := range epc {
@@ -176,7 +181,7 @@ func (rtsys TypeA) reflectEpcToChamber(epc epCoord) (parity int) {
 	return
 }
 
-func (rtsys TypeA) reflectEpcToAlcove(epc epCoord, ell int) (parity int) {
+func (rtsys typeA) reflectEpcToAlcove(epc epCoord, ell int) (parity int) {
 	parity = rtsys.reflectEpcToChamber(epc)
 
 	r := len(epc) - 1
@@ -187,7 +192,7 @@ func (rtsys TypeA) reflectEpcToAlcove(epc epCoord, ell int) (parity int) {
 	return
 }
 
-func (rtsys TypeA) nextOrbitEpc(epc epCoord) bool {
+func (rtsys typeA) nextOrbitEpc(epc epCoord) bool {
 	// Find first swap elt
 	i := 1
 	done := true
@@ -220,7 +225,7 @@ func (rtsys TypeA) nextOrbitEpc(epc epCoord) bool {
 	return done
 }
 
-func (rtsys TypeA) convertWeightToEpc(wt Weight, epc epCoord) {
+func (rtsys typeA) convertWeightToEpc(wt Weight, epc epCoord) {
 	var part int
 	for i := len(wt) - 1; i >= 0; i-- {
 		part += wt[i]
@@ -229,7 +234,7 @@ func (rtsys TypeA) convertWeightToEpc(wt Weight, epc epCoord) {
 	epc[len(epc)-1] = 0
 }
 
-func (rtsys TypeA) convertEpCoord(epc epCoord, retVal Weight) {
+func (rtsys typeA) convertEpCoord(epc epCoord, retVal Weight) {
 	part := epc[len(epc)-1]
 	for i := len(epc) - 2; i >= 0; i-- {
 		temp := epc[i]
@@ -238,13 +243,13 @@ func (rtsys TypeA) convertEpCoord(epc epCoord, retVal Weight) {
 	}
 }
 
-func (rtsys TypeA) newEpc() epCoord {
+func (rtsys typeA) newEpc() epCoord {
 	epc := make([]int, rtsys.rank+1)
 	return epc
 }
 
 // ConvertRoot converts a root into a weight.
-func (rtsys TypeA) convertRoot(rt Root, rslt Weight) {
+func (rtsys typeA) convertRoot(rt Root, rslt Weight) {
 	if rtsys.rank == 1 {
 		rslt[0] = 2 * rt[0]
 		return

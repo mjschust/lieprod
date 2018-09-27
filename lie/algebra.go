@@ -9,11 +9,11 @@ import (
 
 // An Algebra supplies representation-theoretic methods acting on Weights.
 type Algebra interface {
+	RootSystem
 	ReprDimension(Weight) *big.Int
 	DominantChar(Weight) WeightPoly
 	Tensor(...Weight) WeightPoly
 	Fusion(int, ...Weight) WeightPoly
-	CBRank(int, ...Weight) *big.Int
 }
 
 type algebraImpl struct {
