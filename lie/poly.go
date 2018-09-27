@@ -2,6 +2,7 @@ package lie
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/mjschust/cblocks/util"
 )
@@ -97,6 +98,54 @@ func (poly hashPolyBuilder) Mult(val *big.Int) {
 // A PolyProduct defines a product on WeightPolys.
 type PolyProduct func(Weight, Weight) MutableWeightPoly
 
+// MemoReduce reduces the polynomials using memoization.
+func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
+	if len(polys) == 0 {
+		return nil
+	}
+	if len(polys) == 1 {
+		return polys[0]
+	}
+
+	fusionDict := util.NewVectorMap()
+	var mutex = &sync.Mutex{}
+	var memoProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
+		mutex.Lock()
+		submap, present := fusionDict.Get(wt1)
+		if present {
+			curryMap := submap.(util.VectorMap)
+			val, present := curryMap.Get(wt2)
+			if present {
+				mutex.Unlock()
+				return val.(MutableWeightPoly)
+			}
+
+			mutex.Unlock()
+			rslt := prod(wt1, wt2)
+			mutex.Lock()
+			curryMap.Put(wt2, rslt)
+			mutex.Unlock()
+			return rslt
+		}
+
+		mutex.Unlock()
+		rslt := prod(wt1, wt2)
+		mutex.Lock()
+		curryMap := util.NewVectorMap()
+		curryMap.Put(wt2, rslt)
+		fusionDict.Put(wt1, curryMap)
+		mutex.Unlock()
+		return rslt
+	}
+
+	var product = polys[0]
+	for i := 1; i < len(polys); i++ {
+		product = memoProd.Apply(product, polys[i])
+	}
+
+	return product
+}
+
 // Reduce applies the product to a list of polynomials
 func (prod PolyProduct) Reduce(polys ...WeightPoly) WeightPoly {
 	if len(polys) == 0 {
@@ -118,7 +167,7 @@ func (prod PolyProduct) Reduce(polys ...WeightPoly) WeightPoly {
 func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
 	type monoExpan struct {
 		coeff *big.Int
-		poly  MutableWeightPoly
+		poly  WeightPoly
 	}
 	retPoly := NewWeightPolyBuilder(poly1.Rank())
 	poly1Wts := poly1.Weights()
@@ -134,12 +183,18 @@ func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
 			}(coeff, wt1, wt2)
 		}
 	}
+
+	coeff := big.NewInt(0)
 	for range poly1Wts {
 		for range poly2Wts {
 			prodRslt := <-c
 			summand := prodRslt.poly
-			summand.Mult(prodRslt.coeff)
-			retPoly.Add(summand)
+
+			for _, wt := range summand.Weights() {
+				mult := summand.Multiplicity(wt)
+				coeff.Mul(prodRslt.coeff, mult)
+				retPoly.AddMonomial(wt, coeff)
+			}
 		}
 	}
 	return retPoly

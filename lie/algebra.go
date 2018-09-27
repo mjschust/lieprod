@@ -253,7 +253,7 @@ func (alg algebraImpl) Fusion(ell int, wts ...Weight) WeightPoly {
 	var polyProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
 		return alg.fusionProduct(ell, wt1, wt2)
 	}
-	return polyProd.Reduce(polys...)
+	return polyProd.MemoReduce(polys...)
 }
 
 // fusionProduct computes the tensor product decomposition of the given representations.
