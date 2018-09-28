@@ -75,6 +75,145 @@ func TestSymmetricL1Rank(t *testing.T) {
 	}
 }
 
+func TestSymmetricL2Rank(t *testing.T) {
+	cases := []struct {
+		rtsys lie.RootSystem
+		wt    lie.Weight
+		ell   int
+		n     int
+		want  *big.Int
+	}{
+		// n=3
+		{lie.NewTypeARootSystem(1), lie.Weight{0}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(1), lie.Weight{1}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(1), lie.Weight{2}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 0}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 1}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 2}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 0}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 1}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{2, 0}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 0}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 1}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 2}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 0}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 1}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 2, 0}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 0}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 1}, 2, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 1, 0}, 2, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 0, 0}, 2, 3, big.NewInt(0)},
+
+		// n=4
+		{lie.NewTypeARootSystem(1), lie.Weight{0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(1), lie.Weight{1}, 2, 4, big.NewInt(2)},
+		{lie.NewTypeARootSystem(1), lie.Weight{2}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 1}, 2, 4, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 2}, 2, 4, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 0}, 2, 4, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 1}, 2, 4, big.NewInt(2)},
+		{lie.NewTypeARootSystem(2), lie.Weight{2, 0}, 2, 4, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 1}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 2}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 0}, 2, 4, big.NewInt(3)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 1}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 2, 0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 1}, 2, 4, big.NewInt(3)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 1, 0}, 2, 4, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 0, 0}, 2, 4, big.NewInt(1)},
+
+		// n=5
+		{lie.NewTypeARootSystem(1), lie.Weight{0}, 2, 5, big.NewInt(1)},
+		{lie.NewTypeARootSystem(1), lie.Weight{1}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(1), lie.Weight{2}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 0}, 2, 5, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 1}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 2}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 1}, 2, 5, big.NewInt(3)},
+		{lie.NewTypeARootSystem(2), lie.Weight{2, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 0}, 2, 5, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 1}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 2}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 1}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 2, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 1}, 2, 5, big.NewInt(5)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 1, 0}, 2, 5, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 0, 0}, 2, 5, big.NewInt(0)},
+	}
+
+	for _, c := range cases {
+		alg := lie.NewAlgebra(c.rtsys)
+		bun := NewSymmetricCBBundle(alg, c.wt, c.ell, c.n)
+		got := bun.Rank()
+		if got.Cmp(c.want) != 0 {
+			t.Errorf("For type A CBBundle(wt: %v, ell: %v, n: %v): Rank() = %v, want %v",
+				c.wt, c.ell, c.n, got, c.want)
+		}
+	}
+}
+
+func TestSymmetricL3Rank(t *testing.T) {
+	cases := []struct {
+		rtsys lie.RootSystem
+		wt    lie.Weight
+		ell   int
+		n     int
+		want  *big.Int
+	}{
+		// n=3
+		{lie.NewTypeARootSystem(1), lie.Weight{0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(1), lie.Weight{1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(1), lie.Weight{2}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(1), lie.Weight{3}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 1}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 2}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{0, 3}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 1}, 3, 3, big.NewInt(2)},
+		{lie.NewTypeARootSystem(2), lie.Weight{1, 2}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{2, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{2, 1}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(2), lie.Weight{3, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 2}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 0, 3}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 1, 2}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 2, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 2, 1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{0, 3, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 1}, 3, 3, big.NewInt(2)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 0, 2}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 1, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 1, 1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{1, 2, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 0, 0}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 0, 1}, 3, 3, big.NewInt(0)},
+		{lie.NewTypeARootSystem(3), lie.Weight{2, 1, 0}, 3, 3, big.NewInt(1)},
+		{lie.NewTypeARootSystem(3), lie.Weight{3, 0, 0}, 3, 3, big.NewInt(0)},
+	}
+
+	for _, c := range cases {
+		alg := lie.NewAlgebra(c.rtsys)
+		bun := NewSymmetricCBBundle(alg, c.wt, c.ell, c.n)
+		got := bun.Rank()
+		if got.Cmp(c.want) != 0 {
+			t.Errorf("For type A CBBundle(wt: %v, ell: %v, n: %v): Rank() = %v, want %v",
+				c.wt, c.ell, c.n, got, c.want)
+		}
+	}
+}
+
 func BenchmarkSymmetricCBRank(b *testing.B) {
 	rank := 5
 	level := 4
