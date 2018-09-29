@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package cbservice;
+
+// The greeting service definition.
+service CBlocks {
+  // Computes the sum of the coordinates of a weight
+  rpc Sum (Weight) returns (IntReply) {}
+
+  // Computes the rank of the conformal blocks bundle
+  rpc ComputeRank (SymConformalBlocksRequest) returns (IntReply) {}
+}
+
+message SymConformalBlocksRequest {
+  LieAlgebra algebra = 1;
+  Weight weight = 2;
+  int64 num_points = 3;
+  int64 level = 4;
+}
+
+message LieAlgebra {
+  enum LieType {
+    A = 0;
+    B = 1;
+    C = 2;
+    D = 3;
+  }
+  LieType type = 1;
+  int64 rank = 2;
+}
+
+// An integral weight
+message Weight {
+  repeated int64 coords = 1;
+}
+
+// A integer reply message
+message IntReply {
+  int64 result = 1;
+}
