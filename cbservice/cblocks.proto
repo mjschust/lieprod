@@ -37,4 +37,5 @@ message Weight {
 // A integer reply message
 message IntReply {
   int64 result = 1;
+  string big_result = 2;
 }

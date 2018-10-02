@@ -324,7 +324,7 @@ class SymmetricConformalBlocksBundle(ConformalBlocksBundle):
     A class representing a symmetric conformal blocks vector bundle.
     """
 
-    def __init__(self, liealg, wt, num_points, level):
+    def __init__(self, client, liealg, wt, num_points, level):
         """
         :param liealg: A SimpleLieAlgebra object.
         :param wt: A list of integers: the weight of the conformal blocks bundle, repeated at each
@@ -332,7 +332,25 @@ class SymmetricConformalBlocksBundle(ConformalBlocksBundle):
         :param num_points: A positive integer: the number of points of the conformal blocks bundle.
         :param level: A positive integer: the level of the conformal blocks bundle.
         """
+        self.client = client
         ConformalBlocksBundle.__init__(self, liealg, [wt for i in range(num_points)], level)
+
+    def get_rank(self):
+        """
+        Computes the rank of the conformal blocks bundle.  The algorithm uses factorization, then
+        the fusion product to compute the 3-point ranks.
+
+        :return: An integer: the rank of the bundle.
+        """
+        if self._rank < 0:
+            self._rank = self.client.request_sym_rank(
+                self.liealg.get_type(), 
+                self.liealg.rank, 
+                self.weights[0], 
+                len(self.weights), 
+                self.level)
+
+        return self._rank
 
     def get_symmetrized_divisor(self):
         """

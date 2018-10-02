@@ -1,5 +1,6 @@
 from __future__ import division
 from collections import defaultdict
+from enum import Enum
 import math, fractions, itertools
 try:
     import sage.all as sage
@@ -16,6 +17,11 @@ Created on Nov 10, 2016
 @author: mjschust
 '''
 
+class LieType(Enum):
+    A = 0
+    B = 1
+    C = 2
+    D = 3
 
 class SimpleLieAlgebra(object):
     """
@@ -271,6 +277,11 @@ class SimpleLieAlgebra(object):
 
         return wt_dict
 
+    def get_type(self):
+        """
+        Returns the LieType of the algebra.
+        """
+        raise NotImplementedError
 
     def killing_form(self, wt1, wt2):
         """
@@ -460,6 +471,12 @@ class TypeALieAlgebra(SimpleLieAlgebra):
     """
     A type A Lie algebra.
     """
+
+    def get_type(self):
+        """
+        Returns the LieType of the algebra.
+        """
+        return LieType.A
 
     def killing_form(self, wt1, wt2):
         ret_val = 0
@@ -715,6 +732,12 @@ class TypeBLieAlgebra(SimpleLieAlgebra):
             raise ValueError("Lie Algebra does not exist.")
 
         super(TypeBLieAlgebra, self).__init__(rank, **kwargs)
+
+    def get_type(self):
+        """
+        Returns the LieType of the algebra.
+        """
+        return LieType.B
 
     def killing_form(self, wt1, wt2):
         ret_val = 0
@@ -1025,6 +1048,12 @@ class TypeCLieAlgebra(SimpleLieAlgebra):
 
         super(TypeCLieAlgebra, self).__init__(rank, **kwargs)
 
+    def get_type(self):
+        """
+        Returns the LieType of the algebra.
+        """
+        return LieType.C
+
     def killing_form(self, wt1, wt2):
         ret_val = 0
         ep_coords1 = self._convert_funds_to_epsilons(wt1)
@@ -1326,6 +1355,12 @@ class TypeDLieAlgebra(SimpleLieAlgebra):
             raise ValueError("Lie Algebra does not exist.")
 
         super(TypeDLieAlgebra, self).__init__(rank, **kwargs)
+
+    def get_type(self):
+        """
+        Returns the LieType of the algebra.
+        """
+        return LieType.D
 
     def killing_form(self, wt1, wt2):
         ret_val = 0

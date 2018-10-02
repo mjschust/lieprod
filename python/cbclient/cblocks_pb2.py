@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='cbservice',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rcblocks.proto\x12\tcbservice\"\x89\x01\n\x19SymConformalBlocksRequest\x12&\n\x07\x61lgebra\x18\x01 \x01(\x0b\x32\x15.cbservice.LieAlgebra\x12!\n\x06weight\x18\x02 \x01(\x0b\x32\x11.cbservice.Weight\x12\x12\n\nnum_points\x18\x03 \x01(\x03\x12\r\n\x05level\x18\x04 \x01(\x03\"n\n\nLieAlgebra\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.cbservice.LieAlgebra.LieType\x12\x0c\n\x04rank\x18\x02 \x01(\x03\"%\n\x07LieType\x12\x05\n\x01\x41\x10\x00\x12\x05\n\x01\x42\x10\x01\x12\x05\n\x01\x43\x10\x02\x12\x05\n\x01\x44\x10\x03\"\x18\n\x06Weight\x12\x0e\n\x06\x63oords\x18\x01 \x03(\x03\"\x1a\n\x08IntReply\x12\x0e\n\x06result\x18\x01 \x01(\x03\x32\x86\x01\n\x07\x43\x42locks\x12/\n\x03Sum\x12\x11.cbservice.Weight\x1a\x13.cbservice.IntReply\"\x00\x12J\n\x0b\x43omputeRank\x12$.cbservice.SymConformalBlocksRequest\x1a\x13.cbservice.IntReply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\rcblocks.proto\x12\tcbservice\"\x89\x01\n\x19SymConformalBlocksRequest\x12&\n\x07\x61lgebra\x18\x01 \x01(\x0b\x32\x15.cbservice.LieAlgebra\x12!\n\x06weight\x18\x02 \x01(\x0b\x32\x11.cbservice.Weight\x12\x12\n\nnum_points\x18\x03 \x01(\x03\x12\r\n\x05level\x18\x04 \x01(\x03\"n\n\nLieAlgebra\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.cbservice.LieAlgebra.LieType\x12\x0c\n\x04rank\x18\x02 \x01(\x03\"%\n\x07LieType\x12\x05\n\x01\x41\x10\x00\x12\x05\n\x01\x42\x10\x01\x12\x05\n\x01\x43\x10\x02\x12\x05\n\x01\x44\x10\x03\"\x18\n\x06Weight\x12\x0e\n\x06\x63oords\x18\x01 \x03(\x03\".\n\x08IntReply\x12\x0e\n\x06result\x18\x01 \x01(\x03\x12\x12\n\nbig_result\x18\x02 \x01(\t2\x86\x01\n\x07\x43\x42locks\x12/\n\x03Sum\x12\x11.cbservice.Weight\x1a\x13.cbservice.IntReply\"\x00\x12J\n\x0b\x43omputeRank\x12$.cbservice.SymConformalBlocksRequest\x1a\x13.cbservice.IntReply\"\x00\x62\x06proto3')
 )
 
 
@@ -191,6 +191,13 @@ _INTREPLY = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='big_result', full_name='cbservice.IntReply.big_result', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -204,7 +211,7 @@ _INTREPLY = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=306,
-  serialized_end=332,
+  serialized_end=352,
 )
 
 _SYMCONFORMALBLOCKSREQUEST.fields_by_name['algebra'].message_type = _LIEALGEBRA
@@ -253,8 +260,8 @@ _CBLOCKS = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=335,
-  serialized_end=469,
+  serialized_start=355,
+  serialized_end=489,
   methods=[
   _descriptor.MethodDescriptor(
     name='Sum',

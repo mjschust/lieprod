@@ -16,10 +16,8 @@ const (
 	port = ":50051"
 )
 
-// server is used to implement helloworld.GreeterServer.
 type server struct{}
 
-// SayHello implements helloworld.GreeterServer
 func (s *server) Sum(ctx context.Context, in *pb.Weight) (*pb.IntReply, error) {
 	coords := in.GetCoords()
 	var sum int64
@@ -42,7 +40,11 @@ func (s *server) ComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksRequ
 	cbb := bundle.NewSymmetricCBBundle(alg, wt, level, n)
 	rslt := cbb.Rank()
 
-	return &pb.IntReply{Result: rslt.Int64()}, nil
+	if rslt.IsInt64() {
+		return &pb.IntReply{Result: rslt.Int64()}, nil
+	}
+
+	return &pb.IntReply{BigResult: rslt.Text(16)}, nil
 }
 
 func main() {
