@@ -21,12 +21,14 @@ class ConformalBlocksBundle(object):
     A class representing a conformal blocks vector bundle.
     """
 
-    def __init__(self, liealg, weights, level):
+    def __init__(self, client, liealg, weights, level):
         """
+        :param client: a CBClient with connection to backend server
         :param liealg: A SimpleLieAlgebra object.
         :param weights: A list of tuples of integers: the weights of the conformal blocks bundle.
         :param level: A positive integer: the level of the conformal blocks bundle.
         """
+        self.client = client
         self.liealg = liealg
         new_weights = []
         for wt in weights:
@@ -43,7 +45,11 @@ class ConformalBlocksBundle(object):
         :return: An integer: the rank of the bundle.
         """
         if self._rank < 0:
-            self._rank = self._get_rank(self.weights, self.level)
+            self._rank = self.client.request_rank(
+                self.liealg.get_type(), 
+                self.liealg.rank, 
+                self.weights, 
+                self.level)
 
         return self._rank
 
@@ -56,82 +62,11 @@ class ConformalBlocksBundle(object):
         :param level: A positive integer: corresponds to the level of the fusion product.
         :return: An integer: the rank of the bundle.
         """
-        # Find weights with largest and smallest corresponding rep's
-        liealg = self.liealg
-        min_dim = max_dim = liealg.get_rep_dim(weights[0])
-        min_index = max_index = 0
-        for i in range(len(weights)):
-            dim = liealg.get_rep_dim(weights[i])
-            if dim < min_dim:
-                min_dim = dim
-                min_index = i
-            if dim > max_dim:
-                max_dim = dim
-                max_index = i
-        # Covers the case when all dimensions are the same
-        if min_index == max_index:
-            max_index = min_index + 1
-
-        fus_prod = liealg.fusion(weights[min_index], weights[max_index], level)
-        # indices = min_index, max_index
-        # factor_list = [wt for (i, wt) in enumerate(weights) if i not in indices]
-        factor_list = []
-        for i in range(len(weights)):
-            if i != min_index and i != max_index:
-                factor_list.append(weights[i])
-        multi_fus_prod = liealg.multi_fusion(factor_list, level)
-
-        ret_val = 0
-        for mu_star in fus_prod:
-            mult = fus_prod[mu_star]
-            mu = liealg.get_dual_weight(mu_star)
-            if mu in multi_fus_prod:
-                ret_val += mult * multi_fus_prod[mu]
-
-        return ret_val
-
-    #Original version of the above method.  Uses less memory but runs an order of magnitude slower.
-    def _alt_compute_rank(self, weights, level):
-        # Find weights with largest and smallest corresponding rep's
-        liealg = self.liealg
-        min_dim = max_dim = liealg.get_rep_dim(weights[0])
-        min_index = max_index = 0
-        for i in range(len(weights)):
-            dim = liealg.get_rep_dim(weights[i])
-            if dim < min_dim:
-                min_dim = dim
-                min_index = i
-            if dim > max_dim:
-                max_dim = dim
-                max_index = i
-        # Covers the case when all dimensions are the same
-        if min_index == max_index:
-            max_index = min_index + 1
-
-        fus_prod = liealg.fusion(weights[min_index], weights[max_index], level)
-        # indices = min_index, max_index
-        # factor_list = [wt for (i, wt) in enumerate(weights) if i not in indices]
-        factor_list = []
-        for i in range(len(weights)):
-            if i != min_index and i != max_index:
-                factor_list.append(weights[i])
-
-        # Three point case is given by the fusion product
-        if len(factor_list) == 1:
-            dual_wt3 = liealg.get_dual_weight(factor_list[0])
-            if dual_wt3 in fus_prod:
-                return fus_prod[dual_wt3]
-            else:
-                return 0
-
-        # If more than three points, factor
-        ret_val = 0
-        for wt in fus_prod:
-            mult = fus_prod[wt]
-            if mult > 0:
-                ret_val = ret_val + mult * self._alt_compute_rank(factor_list + [wt], level)
-
-        return ret_val
+        return self.client.request_rank(
+                self.liealg.get_type(), 
+                self.liealg.rank, 
+                weights, 
+                level)
 
     def get_symmetrized_divisor(self):
         """
@@ -332,8 +267,7 @@ class SymmetricConformalBlocksBundle(ConformalBlocksBundle):
         :param num_points: A positive integer: the number of points of the conformal blocks bundle.
         :param level: A positive integer: the level of the conformal blocks bundle.
         """
-        self.client = client
-        ConformalBlocksBundle.__init__(self, liealg, [wt for i in range(num_points)], level)
+        ConformalBlocksBundle.__init__(self, client, liealg, [wt for i in range(num_points)], level)
 
     def get_rank(self):
         """

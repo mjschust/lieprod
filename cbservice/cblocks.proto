@@ -4,13 +4,21 @@ package cbservice;
 
 // The greeting service definition.
 service CBlocks {
-  // Computes the sum of the coordinates of a weight
-  rpc Sum (Weight) returns (IntReply) {}
+  // Computes the rank of a symmetric conformal blocks bundle
+  rpc ComputeRank (ConformalBlocksRequest) returns (IntReply) {}
 
-  // Computes the rank of the conformal blocks bundle
-  rpc ComputeRank (SymConformalBlocksRequest) returns (IntReply) {}
+  // Computes the rank of a symmetric conformal blocks bundle
+  rpc SymComputeRank (SymConformalBlocksRequest) returns (IntReply) {}
 }
 
+// A conformal blocks request
+message ConformalBlocksRequest {
+  LieAlgebra algebra = 1;
+  repeated Weight weights = 2;
+  int64 level = 3;
+}
+
+// A symmetric conformal blocks request
 message SymConformalBlocksRequest {
   LieAlgebra algebra = 1;
   Weight weight = 2;
@@ -18,6 +26,7 @@ message SymConformalBlocksRequest {
   int64 level = 4;
 }
 
+// Represents a Lie algebra
 message LieAlgebra {
   enum LieType {
     A = 0;

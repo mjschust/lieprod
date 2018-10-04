@@ -18,16 +18,30 @@ const (
 
 type server struct{}
 
-func (s *server) Sum(ctx context.Context, in *pb.Weight) (*pb.IntReply, error) {
-	coords := in.GetCoords()
-	var sum int64
-	for i := range coords {
-		sum += coords[i]
+func (s *server) ComputeRank(ctx context.Context, cbr *pb.ConformalBlocksRequest) (*pb.IntReply, error) {
+	rank := int(cbr.Algebra.Rank)
+	level := int(cbr.Level)
+	wts := make([]lie.Weight, len(cbr.Weights))
+	for i := range cbr.Weights {
+		wt := make([]int, rank)
+		for j := range wt {
+			wt[j] = int(cbr.Weights[i].Coords[j])
+		}
+		wts[i] = wt
 	}
-	return &pb.IntReply{Result: sum}, nil
+
+	alg := lie.NewAlgebra(lie.NewTypeARootSystem(rank))
+	cbb := bundle.NewCBBundle(alg, wts, level)
+	rslt := cbb.Rank()
+
+	if rslt.IsInt64() {
+		return &pb.IntReply{Result: rslt.Int64()}, nil
+	}
+
+	return &pb.IntReply{BigResult: rslt.Text(16)}, nil
 }
 
-func (s *server) ComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksRequest) (*pb.IntReply, error) {
+func (s *server) SymComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksRequest) (*pb.IntReply, error) {
 	rank := int(cbr.Algebra.Rank)
 	level := int(cbr.Level)
 	n := int(cbr.NumPoints)

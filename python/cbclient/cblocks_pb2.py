@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='cbservice',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\rcblocks.proto\x12\tcbservice\"\x89\x01\n\x19SymConformalBlocksRequest\x12&\n\x07\x61lgebra\x18\x01 \x01(\x0b\x32\x15.cbservice.LieAlgebra\x12!\n\x06weight\x18\x02 \x01(\x0b\x32\x11.cbservice.Weight\x12\x12\n\nnum_points\x18\x03 \x01(\x03\x12\r\n\x05level\x18\x04 \x01(\x03\"n\n\nLieAlgebra\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.cbservice.LieAlgebra.LieType\x12\x0c\n\x04rank\x18\x02 \x01(\x03\"%\n\x07LieType\x12\x05\n\x01\x41\x10\x00\x12\x05\n\x01\x42\x10\x01\x12\x05\n\x01\x43\x10\x02\x12\x05\n\x01\x44\x10\x03\"\x18\n\x06Weight\x12\x0e\n\x06\x63oords\x18\x01 \x03(\x03\".\n\x08IntReply\x12\x0e\n\x06result\x18\x01 \x01(\x03\x12\x12\n\nbig_result\x18\x02 \x01(\t2\x86\x01\n\x07\x43\x42locks\x12/\n\x03Sum\x12\x11.cbservice.Weight\x1a\x13.cbservice.IntReply\"\x00\x12J\n\x0b\x43omputeRank\x12$.cbservice.SymConformalBlocksRequest\x1a\x13.cbservice.IntReply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\rcblocks.proto\x12\tcbservice\"s\n\x16\x43onformalBlocksRequest\x12&\n\x07\x61lgebra\x18\x01 \x01(\x0b\x32\x15.cbservice.LieAlgebra\x12\"\n\x07weights\x18\x02 \x03(\x0b\x32\x11.cbservice.Weight\x12\r\n\x05level\x18\x03 \x01(\x03\"\x89\x01\n\x19SymConformalBlocksRequest\x12&\n\x07\x61lgebra\x18\x01 \x01(\x0b\x32\x15.cbservice.LieAlgebra\x12!\n\x06weight\x18\x02 \x01(\x0b\x32\x11.cbservice.Weight\x12\x12\n\nnum_points\x18\x03 \x01(\x03\x12\r\n\x05level\x18\x04 \x01(\x03\"n\n\nLieAlgebra\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.cbservice.LieAlgebra.LieType\x12\x0c\n\x04rank\x18\x02 \x01(\x03\"%\n\x07LieType\x12\x05\n\x01\x41\x10\x00\x12\x05\n\x01\x42\x10\x01\x12\x05\n\x01\x43\x10\x02\x12\x05\n\x01\x44\x10\x03\"\x18\n\x06Weight\x12\x0e\n\x06\x63oords\x18\x01 \x03(\x03\".\n\x08IntReply\x12\x0e\n\x06result\x18\x01 \x01(\x03\x12\x12\n\nbig_result\x18\x02 \x01(\t2\xa1\x01\n\x07\x43\x42locks\x12G\n\x0b\x43omputeRank\x12!.cbservice.ConformalBlocksRequest\x1a\x13.cbservice.IntReply\"\x00\x12M\n\x0eSymComputeRank\x12$.cbservice.SymConformalBlocksRequest\x1a\x13.cbservice.IntReply\"\x00\x62\x06proto3')
 )
 
 
@@ -49,10 +49,55 @@ _LIEALGEBRA_LIETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=241,
-  serialized_end=278,
+  serialized_start=358,
+  serialized_end=395,
 )
 _sym_db.RegisterEnumDescriptor(_LIEALGEBRA_LIETYPE)
+
+
+_CONFORMALBLOCKSREQUEST = _descriptor.Descriptor(
+  name='ConformalBlocksRequest',
+  full_name='cbservice.ConformalBlocksRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='algebra', full_name='cbservice.ConformalBlocksRequest.algebra', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weights', full_name='cbservice.ConformalBlocksRequest.weights', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='level', full_name='cbservice.ConformalBlocksRequest.level', index=2,
+      number=3, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=28,
+  serialized_end=143,
+)
 
 
 _SYMCONFORMALBLOCKSREQUEST = _descriptor.Descriptor(
@@ -102,8 +147,8 @@ _SYMCONFORMALBLOCKSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=29,
-  serialized_end=166,
+  serialized_start=146,
+  serialized_end=283,
 )
 
 
@@ -141,8 +186,8 @@ _LIEALGEBRA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=168,
-  serialized_end=278,
+  serialized_start=285,
+  serialized_end=395,
 )
 
 
@@ -172,8 +217,8 @@ _WEIGHT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=280,
-  serialized_end=304,
+  serialized_start=397,
+  serialized_end=421,
 )
 
 
@@ -210,19 +255,29 @@ _INTREPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=306,
-  serialized_end=352,
+  serialized_start=423,
+  serialized_end=469,
 )
 
+_CONFORMALBLOCKSREQUEST.fields_by_name['algebra'].message_type = _LIEALGEBRA
+_CONFORMALBLOCKSREQUEST.fields_by_name['weights'].message_type = _WEIGHT
 _SYMCONFORMALBLOCKSREQUEST.fields_by_name['algebra'].message_type = _LIEALGEBRA
 _SYMCONFORMALBLOCKSREQUEST.fields_by_name['weight'].message_type = _WEIGHT
 _LIEALGEBRA.fields_by_name['type'].enum_type = _LIEALGEBRA_LIETYPE
 _LIEALGEBRA_LIETYPE.containing_type = _LIEALGEBRA
+DESCRIPTOR.message_types_by_name['ConformalBlocksRequest'] = _CONFORMALBLOCKSREQUEST
 DESCRIPTOR.message_types_by_name['SymConformalBlocksRequest'] = _SYMCONFORMALBLOCKSREQUEST
 DESCRIPTOR.message_types_by_name['LieAlgebra'] = _LIEALGEBRA
 DESCRIPTOR.message_types_by_name['Weight'] = _WEIGHT
 DESCRIPTOR.message_types_by_name['IntReply'] = _INTREPLY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+ConformalBlocksRequest = _reflection.GeneratedProtocolMessageType('ConformalBlocksRequest', (_message.Message,), dict(
+  DESCRIPTOR = _CONFORMALBLOCKSREQUEST,
+  __module__ = 'cblocks_pb2'
+  # @@protoc_insertion_point(class_scope:cbservice.ConformalBlocksRequest)
+  ))
+_sym_db.RegisterMessage(ConformalBlocksRequest)
 
 SymConformalBlocksRequest = _reflection.GeneratedProtocolMessageType('SymConformalBlocksRequest', (_message.Message,), dict(
   DESCRIPTOR = _SYMCONFORMALBLOCKSREQUEST,
@@ -260,21 +315,21 @@ _CBLOCKS = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=355,
-  serialized_end=489,
+  serialized_start=472,
+  serialized_end=633,
   methods=[
   _descriptor.MethodDescriptor(
-    name='Sum',
-    full_name='cbservice.CBlocks.Sum',
+    name='ComputeRank',
+    full_name='cbservice.CBlocks.ComputeRank',
     index=0,
     containing_service=None,
-    input_type=_WEIGHT,
+    input_type=_CONFORMALBLOCKSREQUEST,
     output_type=_INTREPLY,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='ComputeRank',
-    full_name='cbservice.CBlocks.ComputeRank',
+    name='SymComputeRank',
+    full_name='cbservice.CBlocks.SymComputeRank',
     index=1,
     containing_service=None,
     input_type=_SYMCONFORMALBLOCKSREQUEST,

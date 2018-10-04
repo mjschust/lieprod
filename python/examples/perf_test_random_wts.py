@@ -1,22 +1,22 @@
 from __future__ import division
 import conformal_blocks.cbbundle as cbd
 import cbclient.cbclient as cbc
+import random
 
 def experiment():
     rank = 5
     level = 4
-    num_points = 10
+    num_points = 6
+    tries = 10
 
     client = cbc.CBClient()
     liealg = cbd.TypeALieAlgebra(rank, store_fusion=True, exact=False)
+    A_l = liealg.get_weights(level)
     print("Weight", "Rank", "Divisor")
-    for wt in liealg.get_weights(level):
-        cbb = cbd.SymmetricConformalBlocksBundle(client, liealg, wt, num_points, level)
-        if cbb.get_rank() == 0:
-            #print(wt, 0)
-            continue
-        divisor = cbb.get_symmetrized_divisor()
-        print(wt, cbb.get_rank(), divisor)
+    for i in range(tries):
+        weights = [random.choice(A_l) for i in range(num_points)]
+        rk = client.request_rank(liealg.get_type(), liealg.rank, weights, level)
+        print(weights, rk)
 
 if __name__ == '__main__':
     experiment()

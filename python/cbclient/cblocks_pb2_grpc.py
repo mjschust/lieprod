@@ -14,13 +14,13 @@ class CBlocksStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.Sum = channel.unary_unary(
-        '/cbservice.CBlocks/Sum',
-        request_serializer=cblocks__pb2.Weight.SerializeToString,
-        response_deserializer=cblocks__pb2.IntReply.FromString,
-        )
     self.ComputeRank = channel.unary_unary(
         '/cbservice.CBlocks/ComputeRank',
+        request_serializer=cblocks__pb2.ConformalBlocksRequest.SerializeToString,
+        response_deserializer=cblocks__pb2.IntReply.FromString,
+        )
+    self.SymComputeRank = channel.unary_unary(
+        '/cbservice.CBlocks/SymComputeRank',
         request_serializer=cblocks__pb2.SymConformalBlocksRequest.SerializeToString,
         response_deserializer=cblocks__pb2.IntReply.FromString,
         )
@@ -30,15 +30,15 @@ class CBlocksServicer(object):
   """The greeting service definition.
   """
 
-  def Sum(self, request, context):
-    """Computes the sum of the coordinates of a weight
+  def ComputeRank(self, request, context):
+    """Computes the rank of a symmetric conformal blocks bundle
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ComputeRank(self, request, context):
-    """Computes the rank of the conformal blocks bundle
+  def SymComputeRank(self, request, context):
+    """Computes the rank of a symmetric conformal blocks bundle
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -47,13 +47,13 @@ class CBlocksServicer(object):
 
 def add_CBlocksServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'Sum': grpc.unary_unary_rpc_method_handler(
-          servicer.Sum,
-          request_deserializer=cblocks__pb2.Weight.FromString,
-          response_serializer=cblocks__pb2.IntReply.SerializeToString,
-      ),
       'ComputeRank': grpc.unary_unary_rpc_method_handler(
           servicer.ComputeRank,
+          request_deserializer=cblocks__pb2.ConformalBlocksRequest.FromString,
+          response_serializer=cblocks__pb2.IntReply.SerializeToString,
+      ),
+      'SymComputeRank': grpc.unary_unary_rpc_method_handler(
+          servicer.SymComputeRank,
           request_deserializer=cblocks__pb2.SymConformalBlocksRequest.FromString,
           response_serializer=cblocks__pb2.IntReply.SerializeToString,
       ),

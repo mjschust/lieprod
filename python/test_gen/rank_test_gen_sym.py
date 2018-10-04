@@ -7,10 +7,9 @@ def experiment():
     Generates Macaulay 2 test cases, runs them using Swinarski's program, then outputs new unit tests if successful
     :return: Null
     """
-    rank = 3
+    rank = 1
     level = 3
     num_points = 3
-    tries = 10
 
     liealg = cbd.TypeALieAlgebra(rank)
     A_l = liealg.get_weights(level)
@@ -18,12 +17,11 @@ def experiment():
     m2file.write("loadPackage(\"ConformalBlocks\");\n")
     m2file.write("sl_" + str(rank+1) + " = simpleLieAlgebra(\"A\", " + str(rank) + ");\n")
     test_cases = []
-    for i in range(tries):
-        weights = [random.choice(A_l) for i in range(num_points)]
-        test_cases.append(weights)
-        cbb = cbd.ConformalBlocksBundle(liealg, weights, level)
+    for wt in A_l:
+        test_cases.append(wt)
+        cbb = cbd.SymmetricConformalBlocksBundle(liealg, wt, num_points, level)
         wt_str = "{"
-        for wt in weights:
+        for i in range(num_points):
             if len(wt) == 1:
                 wt_str += "{" + str(wt)[1] + "}, "
             else:
@@ -38,17 +36,15 @@ def experiment():
 
     test_out = subprocess.check_output(["M2", "--script", "TestRank.m2"])
     if test_out == "OK\n":
-        for case in test_cases:
-            cbb = cbd.ConformalBlocksBundle(liealg, case, level)
-            wts_str = "[]lie.Weight{"
-            for wt in case:
-                if len(wt) == 1:
-                    wts_str += "lie.Weight{" + str(wt)[1] + "}, "
-                else:
-                    wts_str += "lie.Weight{" + str(wt)[1:-1] + "}, "
-            wts_str = wts_str[:-2] + "}, "
+        for wt in test_cases:
+            cbb = cbd.SymmetricConformalBlocksBundle(liealg, wt, num_points, level)
+            wt_str = ""
+            if len(wt) == 1:
+                wt_str += "{" + str(wt)[1] + "}, "
+            else:
+                wt_str += "{" + str(wt)[1:-1] + "}, "
             
-            print("{lie.NewTypeARootSystem(" + str(rank) + "), " + wts_str + str(level) + ", big.NewInt(" + str(cbb.get_rank()) + ")},")
+            print("{lie.NewTypeARootSystem(" + str(rank) + "), lie.Weight" + wt_str + str(level) + ", " + str(num_points) + ", big.NewInt(" + str(cbb.get_rank()) + ")},")
         print("OK")
     else:
         print(test_out)

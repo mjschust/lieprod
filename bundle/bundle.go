@@ -6,12 +6,32 @@ import (
 	"github.com/mjschust/cblocks/lie"
 )
 
+// CBBundle represents a conformal blocks bundle.
 type CBBundle interface {
+	Algebra() lie.Algebra
+	Weights() []lie.Weight
+	Level() int
+	Points() int
 	Rank() *big.Int
 }
 
+// NewCBBundle creates a new CBBundle.
+func NewCBBundle(alg lie.Algebra, wts []lie.Weight, ell int) CBBundle {
+	n := len(wts)
+	newWts := make([]lie.Weight, n)
+	for i := 0; i < n; i++ {
+		wtCopy := alg.NewWeight()
+		copy(wtCopy, wts[i])
+		newWts[i] = wtCopy
+	}
+	return cbbundleImpl{alg, newWts, ell}
+}
+
+// NewSymmetricCBBundle creates a CBBundle with the given weight repeated n times.
 func NewSymmetricCBBundle(alg lie.Algebra, wt lie.Weight, ell int, n int) CBBundle {
 	wts := make([]lie.Weight, n)
+	wtCopy := alg.NewWeight()
+	copy(wtCopy, wt)
 	for i := 0; i < n; i++ {
 		wts[i] = wt
 	}
@@ -24,20 +44,35 @@ type cbbundleImpl struct {
 	ell int
 }
 
+func (bun cbbundleImpl) Algebra() lie.Algebra {
+	return bun.alg
+}
+
+func (bun cbbundleImpl) Weights() []lie.Weight {
+	wts := bun.wts
+	n := len(wts)
+	newWts := make([]lie.Weight, n)
+	for i := 0; i < n; i++ {
+		wtCopy := bun.alg.NewWeight()
+		copy(wtCopy, wts[i])
+		newWts[i] = wtCopy
+	}
+	return newWts
+}
+
+func (bun cbbundleImpl) Level() int {
+	return bun.ell
+}
+
+func (bun cbbundleImpl) Points() int {
+	return len(bun.wts)
+}
+
 func (bun cbbundleImpl) Rank() *big.Int {
 	alg := bun.alg
 	wts := bun.wts
 	ell := bun.ell
-	fusProd := alg.Fusion(ell, wts[0], wts[1])
-	multiFus := alg.Fusion(ell, wts[2:len(wts)]...)
+	product := alg.Fusion(ell, wts[1:len(wts)]...)
 
-	retVal := big.NewInt(0)
-	rslt := big.NewInt(0)
-	for _, muStar := range fusProd.Weights() {
-		mult1 := fusProd.Multiplicity(muStar)
-		mu := alg.Dual(muStar)
-		mult2 := multiFus.Multiplicity(mu)
-		retVal.Add(retVal, rslt.Mul(mult1, mult2))
-	}
-	return retVal
+	return product.Multiplicity(alg.Dual(wts[0]))
 }
