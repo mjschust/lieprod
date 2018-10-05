@@ -98,15 +98,7 @@ func (poly hashPolyBuilder) Mult(val *big.Int) {
 // A PolyProduct defines a product on WeightPolys.
 type PolyProduct func(Weight, Weight) MutableWeightPoly
 
-// MemoReduce reduces the polynomials using memoization.
-func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
-	if len(polys) == 0 {
-		return nil
-	}
-	if len(polys) == 1 {
-		return polys[0]
-	}
-
+func (prod PolyProduct) Memoize() PolyProduct {
 	fusionDict := util.NewVectorMap()
 	var mutex = &sync.Mutex{}
 	var memoProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
@@ -137,6 +129,20 @@ func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
 		mutex.Unlock()
 		return rslt
 	}
+
+	return memoProd
+}
+
+// MemoReduce reduces the polynomials using memoization.
+func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
+	if len(polys) == 0 {
+		return nil
+	}
+	if len(polys) == 1 {
+		return polys[0]
+	}
+
+	memoProd := prod.Memoize()
 
 	var product = polys[0]
 	for i := 1; i < len(polys); i++ {
