@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/big"
 	"net"
 
 	"github.com/mjschust/cblocks/bundle"
@@ -19,6 +20,27 @@ const (
 type server struct{}
 
 func (s *server) ComputeRank(ctx context.Context, cbr *pb.ConformalBlocksRequest) (*pb.IntReply, error) {
+	cbb := constructCBBundle(cbr)
+	rslt := cbb.Rank()
+
+	return constructIntReply(rslt), nil
+}
+
+func (s *server) SymComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksRequest) (*pb.IntReply, error) {
+	cbb := processSymCBRequest(cbr)
+	rslt := cbb.Rank()
+
+	return constructIntReply(rslt), nil
+}
+
+func (s *server) SymComputeDivisor(ctx context.Context, cbr *pb.SymConformalBlocksRequest) (*pb.VectorReply, error) {
+	cbb := processSymCBRequest(cbr)
+	rslt := cbb.SymmetrizedDivisor()
+
+	return constructVectorReply(rslt), nil
+}
+
+func constructCBBundle(cbr *pb.ConformalBlocksRequest) bundle.CBBundle {
 	rank := int(cbr.Algebra.Rank)
 	level := int(cbr.Level)
 	wts := make([]lie.Weight, len(cbr.Weights))
@@ -31,17 +53,10 @@ func (s *server) ComputeRank(ctx context.Context, cbr *pb.ConformalBlocksRequest
 	}
 
 	alg := lie.NewAlgebra(lie.NewTypeARootSystem(rank))
-	cbb := bundle.NewCBBundle(alg, wts, level)
-	rslt := cbb.Rank()
-
-	if rslt.IsInt64() {
-		return &pb.IntReply{Result: rslt.Int64()}, nil
-	}
-
-	return &pb.IntReply{BigResult: rslt.Text(16)}, nil
+	return bundle.NewCBBundle(alg, wts, level)
 }
 
-func (s *server) SymComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksRequest) (*pb.IntReply, error) {
+func processSymCBRequest(cbr *pb.SymConformalBlocksRequest) bundle.SymCBBundle {
 	rank := int(cbr.Algebra.Rank)
 	level := int(cbr.Level)
 	n := int(cbr.NumPoints)
@@ -51,14 +66,30 @@ func (s *server) SymComputeRank(ctx context.Context, cbr *pb.SymConformalBlocksR
 	}
 
 	alg := lie.NewAlgebra(lie.NewTypeARootSystem(rank))
-	cbb := bundle.NewSymmetricCBBundle(alg, wt, level, n)
-	rslt := cbb.Rank()
+	return bundle.NewSymmetricCBBundle(alg, wt, level, n)
+}
 
-	if rslt.IsInt64() {
-		return &pb.IntReply{Result: rslt.Int64()}, nil
+func constructVectorReply(rslt []*big.Rat) *pb.VectorReply {
+	coords := make([]*pb.RatReply, len(rslt))
+	for i := range rslt {
+		coords[i] = constructRatReply(rslt[i])
 	}
 
-	return &pb.IntReply{BigResult: rslt.Text(16)}, nil
+	return &pb.VectorReply{Coords: coords}
+}
+
+func constructRatReply(rslt *big.Rat) *pb.RatReply {
+	numerator := constructIntReply(rslt.Num())
+	denominator := constructIntReply(rslt.Denom())
+	return &pb.RatReply{Numerator: numerator, Denominator: denominator}
+}
+
+func constructIntReply(rslt *big.Int) *pb.IntReply {
+	if rslt.IsInt64() {
+		return &pb.IntReply{Result: rslt.Int64()}
+	}
+
+	return &pb.IntReply{BigResult: rslt.Text(16)}
 }
 
 func main() {

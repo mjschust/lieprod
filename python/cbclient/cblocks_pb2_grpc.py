@@ -24,6 +24,11 @@ class CBlocksStub(object):
         request_serializer=cblocks__pb2.SymConformalBlocksRequest.SerializeToString,
         response_deserializer=cblocks__pb2.IntReply.FromString,
         )
+    self.SymComputeDivisor = channel.unary_unary(
+        '/cbservice.CBlocks/SymComputeDivisor',
+        request_serializer=cblocks__pb2.SymConformalBlocksRequest.SerializeToString,
+        response_deserializer=cblocks__pb2.VectorReply.FromString,
+        )
 
 
 class CBlocksServicer(object):
@@ -44,6 +49,13 @@ class CBlocksServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def SymComputeDivisor(self, request, context):
+    """Computes the divisor of the symmetric conformal blocks bundle
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_CBlocksServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -56,6 +68,11 @@ def add_CBlocksServicer_to_server(servicer, server):
           servicer.SymComputeRank,
           request_deserializer=cblocks__pb2.SymConformalBlocksRequest.FromString,
           response_serializer=cblocks__pb2.IntReply.SerializeToString,
+      ),
+      'SymComputeDivisor': grpc.unary_unary_rpc_method_handler(
+          servicer.SymComputeDivisor,
+          request_deserializer=cblocks__pb2.SymConformalBlocksRequest.FromString,
+          response_serializer=cblocks__pb2.VectorReply.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

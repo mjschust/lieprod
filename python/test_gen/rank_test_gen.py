@@ -1,6 +1,7 @@
 from __future__ import division
 import conformal_blocks.cbbundle as cbd
 import cProfile, time, random, subprocess
+import cbclient.cbclient as cbc
 
 def experiment():
     """
@@ -12,6 +13,7 @@ def experiment():
     num_points = 3
     tries = 10
 
+    client = cbc.CBClient()
     liealg = cbd.TypeALieAlgebra(rank)
     A_l = liealg.get_weights(level)
     m2file = open("TestRank.m2", "w")
@@ -21,7 +23,7 @@ def experiment():
     for i in range(tries):
         weights = [random.choice(A_l) for i in range(num_points)]
         test_cases.append(weights)
-        cbb = cbd.ConformalBlocksBundle(liealg, weights, level)
+        cbb = cbd.ConformalBlocksBundle(client, liealg, weights, level)
         wt_str = "{"
         for wt in weights:
             if len(wt) == 1:
@@ -39,7 +41,7 @@ def experiment():
     test_out = subprocess.check_output(["M2", "--script", "TestRank.m2"])
     if test_out == "OK\n":
         for case in test_cases:
-            cbb = cbd.ConformalBlocksBundle(liealg, case, level)
+            cbb = cbd.ConformalBlocksBundle(client, liealg, case, level)
             wts_str = "[]lie.Weight{"
             for wt in case:
                 if len(wt) == 1:

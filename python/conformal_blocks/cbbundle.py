@@ -294,39 +294,12 @@ class SymmetricConformalBlocksBundle(ConformalBlocksBundle):
         :return: A list of numbers: the divisor given in the standard basis D_1, D_2,... of
             the symmetric nef cone.
         """
-        ret_val = []
-        n = len(self.weights)
-        wt = self.weights[0]
-        for i in range(2, n // 2 + 1):
-            if self.liealg.exact:
-                coord = Fraction(i * (n - i) * self.get_rank() * self.liealg.casimirScalar(wt), n - 1)
-            else:
-                coord = i * (n - i) * self.get_rank() * self.liealg.casimirScalar(wt) / (n - 1)
-            sum_list = [0]
-            self._weighted_factor(wt, wt, 1, i - 1, n - i, sum_list, {})
-
-            if self.liealg.exact:
-                coord = Fraction(coord - sum_list[0], 2 * (self.level + self.liealg.dual_coxeter()))
-            else:
-                coord = (coord - sum_list[0]) / (2 * (self.level + self.liealg.dual_coxeter()))
-            ret_val.append(coord)
-
-        return ret_val
-
-    def _weighted_factor(self, wt, wt2, mult, wts_rem, ic, ret_val, rank_dict):
-        prod = self.liealg.fusion(wt, wt2, self.level)
-
-        for wt3 in prod.keys():
-            if wts_rem > 1:
-                self._weighted_factor(wt, wt3, mult * prod[wt3], wts_rem - 1, ic, ret_val, rank_dict)
-            else:
-                if not wt3 in rank_dict:
-                    wt_list = [wt for i in range(ic)]
-                    wt_list.append(wt3)
-                    rank_dict[wt3] = self._get_rank(wt_list, self.level)
-
-                ret_val[0] += self.liealg.casimirScalar(self.liealg.get_dual_weight(wt3)) * mult * prod[wt3] * \
-                              rank_dict[wt3]
+        return self.client.request_sym_divisor(
+            self.liealg.get_type(), 
+            self.liealg.rank, 
+            self.weights[0], 
+            len(self.weights), 
+            self.level)
 
     def get_sym_F_curves(self):
         """

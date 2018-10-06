@@ -9,6 +9,9 @@ service CBlocks {
 
   // Computes the rank of a symmetric conformal blocks bundle
   rpc SymComputeRank (SymConformalBlocksRequest) returns (IntReply) {}
+
+  // Computes the divisor of the symmetric conformal blocks bundle
+  rpc SymComputeDivisor (SymConformalBlocksRequest) returns (VectorReply) {}
 }
 
 // A conformal blocks request
@@ -43,7 +46,18 @@ message Weight {
   repeated int64 coords = 1;
 }
 
-// A integer reply message
+// A vector reply message
+message VectorReply {
+  repeated RatReply coords = 1;
+}
+
+// A rational reply message
+message RatReply {
+  IntReply numerator = 1;
+  IntReply denominator = 2;
+}
+
+// An integer reply message
 message IntReply {
   int64 result = 1;
   string big_result = 2;
