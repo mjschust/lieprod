@@ -113,34 +113,55 @@ func (bun symCbbundleImpl) SymmetrizedDivisor() []*big.Rat {
 	sumDenom.SetInt(denom)
 
 	// Compute the output vector
-	a := big.NewRat(0, 1)
+	channels := make([]chan *big.Rat, n/2-1)
+	for i := 2; i < n/2+1; i++ {
+		c := make(chan *big.Rat)
+		channels[i-2] = c
+		go bun.computeCoord(i, baseSummand, sumDenom, prod, c)
+	}
+
 	retVec := make([]*big.Rat, n/2-1)
 	for i := 2; i < n/2+1; i++ {
-		// Compute positive summand
-		summand := big.NewRat(0, 1)
-		summand.Set(baseSummand)
-		a.SetFrac64(int64(i*(n-i)), 1)
-		summand.Mul(summand, a)
-
-		// Compute "weighted" factorization calculation
-		poly1 := prod.Reduce(wts[0:i]...)
-		poly2 := prod.Reduce(wts[i:n]...)
-		wfSum := big.NewInt(0)
-		for _, mustar := range poly1.Weights() {
-			mu := alg.Dual(mustar)
-			bun.casimirScalar(mu, rho, rslt)
-			rslt.Mul(rslt, poly1.Multiplicity(mustar))
-			rslt.Mul(rslt, poly2.Multiplicity(mu))
-			wfSum.Add(wfSum, rslt)
-		}
-		a.SetInt(wfSum)
-
-		summand.Sub(summand, a)
-		summand.Quo(summand, sumDenom)
-		retVec[i-2] = summand
+		c := channels[i-2]
+		retVec[i-2] = <-c
 	}
 
 	return retVec
+}
+
+func (bun symCbbundleImpl) computeCoord(i int, baseSummand *big.Rat, sumDenom *big.Rat, prod lie.PolyProduct, c chan *big.Rat) {
+	alg := bun.alg
+	wts := make([]lie.WeightPoly, len(bun.wts))
+	for i := range bun.wts {
+		wts[i] = bun.wts[i]
+	}
+	n := len(bun.wts)
+	rho := alg.Rho()
+	a := big.NewRat(0, 1)
+	rslt := big.NewInt(0)
+
+	// Compute positive summand
+	summand := big.NewRat(0, 1)
+	summand.Set(baseSummand)
+	a.SetFrac64(int64(i*(n-i)), 1)
+	summand.Mul(summand, a)
+
+	// Compute "weighted" factorization calculation
+	poly1 := prod.Reduce(wts[0:i]...)
+	poly2 := prod.Reduce(wts[i:n]...)
+	wfSum := big.NewInt(0)
+	for _, mustar := range poly1.Weights() {
+		mu := alg.Dual(mustar)
+		bun.casimirScalar(mu, rho, rslt)
+		rslt.Mul(rslt, poly1.Multiplicity(mustar))
+		rslt.Mul(rslt, poly2.Multiplicity(mu))
+		wfSum.Add(wfSum, rslt)
+	}
+	a.SetInt(wfSum)
+
+	summand.Sub(summand, a)
+	summand.Quo(summand, sumDenom)
+	c <- summand
 }
 
 func (bun cbbundleImpl) casimirScalar(wt, rho lie.Weight, rslt *big.Int) {

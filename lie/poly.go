@@ -101,12 +101,13 @@ type PolyProduct interface {
 }
 
 func NewAsynchPP(prod WeightProduct) PolyProduct {
-	return &asynchPP{prod, util.NewVectorMap()}
+	return &asynchPP{prod, util.NewVectorMap(), sync.Mutex{}}
 }
 
 type asynchPP struct {
 	prod     WeightProduct
 	rsltDict util.VectorMap
+	sync.Mutex
 }
 
 func (app *asynchPP) Apply(poly1, poly2 WeightPoly) WeightPoly {
@@ -144,28 +145,34 @@ func (app *asynchPP) Apply(poly1, poly2 WeightPoly) WeightPoly {
 }
 
 func (app *asynchPP) asynchApply(wt1, wt2 Weight) polyPromise {
+	app.Lock()
 	submap, present := app.rsltDict.Get(wt1)
 	if present {
 		curryMap := submap.(util.VectorMap)
 		val, present := curryMap.Get(wt2)
 		if present {
+			app.Unlock()
 			return func() WeightPoly {
 				return val.(WeightPoly)
 			}
+		}
 
-			c := make(chan WeightPoly)
-			go func(wt1, wt2 Weight, c chan WeightPoly) {
-				c <- app.prod(wt1, wt2)
-			}(wt1, wt2, c)
+		app.Unlock()
+		c := make(chan WeightPoly)
+		go func(wt1, wt2 Weight, c chan WeightPoly) {
+			c <- app.prod(wt1, wt2)
+		}(wt1, wt2, c)
 
-			return func() WeightPoly {
-				rslt := <-c
-				curryMap.Put(wt2, rslt)
-				return rslt
-			}
+		return func() WeightPoly {
+			rslt := <-c
+			app.Lock()
+			curryMap.Put(wt2, rslt)
+			app.Unlock()
+			return rslt
 		}
 	}
 
+	app.Unlock()
 	c := make(chan WeightPoly)
 	go func(wt1, wt2 Weight, c chan WeightPoly) {
 		c <- app.prod(wt1, wt2)
@@ -173,9 +180,19 @@ func (app *asynchPP) asynchApply(wt1, wt2 Weight) polyPromise {
 
 	return func() WeightPoly {
 		rslt := <-c
+		app.Lock()
+		submap, present := app.rsltDict.Get(wt1)
+		if present {
+			curryMap := submap.(util.VectorMap)
+			curryMap.Put(wt2, rslt)
+			app.Unlock()
+			return rslt
+		}
+
 		curryMap := util.NewVectorMap()
 		curryMap.Put(wt2, rslt)
 		app.rsltDict.Put(wt1, curryMap)
+		app.Unlock()
 		return rslt
 	}
 }
@@ -200,77 +217,6 @@ type polyPromise func() WeightPoly
 
 // A WeightProduct defines a product on WeightPolys.
 type WeightProduct func(Weight, Weight) MutableWeightPoly
-
-func (prod WeightProduct) Memoize() WeightProduct {
-	fusionDict := util.NewVectorMap()
-	var mutex = &sync.Mutex{}
-	var memoProd WeightProduct = func(wt1, wt2 Weight) MutableWeightPoly {
-		mutex.Lock()
-		submap, present := fusionDict.Get(wt1)
-		if present {
-			curryMap := submap.(util.VectorMap)
-			val, present := curryMap.Get(wt2)
-			if present {
-				mutex.Unlock()
-				return val.(MutableWeightPoly)
-			}
-
-			mutex.Unlock()
-			rslt := prod(wt1, wt2)
-			mutex.Lock()
-			curryMap.Put(wt2, rslt)
-			mutex.Unlock()
-			return rslt
-		}
-
-		mutex.Unlock()
-		rslt := prod(wt1, wt2)
-		mutex.Lock()
-		curryMap := util.NewVectorMap()
-		curryMap.Put(wt2, rslt)
-		fusionDict.Put(wt1, curryMap)
-		mutex.Unlock()
-		return rslt
-	}
-
-	return memoProd
-}
-
-// MemoReduce reduces the polynomials using memoization.
-func (prod WeightProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
-	if len(polys) == 0 {
-		return nil
-	}
-	if len(polys) == 1 {
-		return polys[0]
-	}
-
-	memoProd := prod.Memoize()
-
-	var product = polys[0]
-	for i := 1; i < len(polys); i++ {
-		product = memoProd.Apply(product, polys[i])
-	}
-
-	return product
-}
-
-// Reduce applies the product to a list of polynomials
-func (prod WeightProduct) Reduce(polys ...WeightPoly) WeightPoly {
-	if len(polys) == 0 {
-		return nil
-	}
-	if len(polys) == 1 {
-		return polys[0]
-	}
-
-	var product = polys[0]
-	for i := 1; i < len(polys); i++ {
-		product = prod.Apply(product, polys[i])
-	}
-
-	return product
-}
 
 // Apply the PolyProduct to the given WeightPolys.
 func (prod WeightProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
@@ -307,4 +253,21 @@ func (prod WeightProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
 		}
 	}
 	return retPoly
+}
+
+// Reduce applies the product to a list of polynomials
+func (prod WeightProduct) Reduce(polys ...WeightPoly) WeightPoly {
+	if len(polys) == 0 {
+		return nil
+	}
+	if len(polys) == 1 {
+		return polys[0]
+	}
+
+	var product = polys[0]
+	for i := 1; i < len(polys); i++ {
+		product = prod.Apply(product, polys[i])
+	}
+
+	return product
 }
