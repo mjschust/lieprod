@@ -95,13 +95,116 @@ func (poly hashPolyBuilder) Mult(val *big.Int) {
 	}
 }
 
-// A PolyProduct defines a product on WeightPolys.
-type PolyProduct func(Weight, Weight) MutableWeightPoly
+type PolyProduct interface {
+	Apply(WeightPoly, WeightPoly) WeightPoly
+	Reduce(...WeightPoly) WeightPoly
+}
 
-func (prod PolyProduct) Memoize() PolyProduct {
+func NewAsynchPP(prod WeightProduct) PolyProduct {
+	return &asynchPP{prod, util.NewVectorMap()}
+}
+
+type asynchPP struct {
+	prod     WeightProduct
+	rsltDict util.VectorMap
+}
+
+func (app *asynchPP) Apply(poly1, poly2 WeightPoly) WeightPoly {
+	type monoExpan struct {
+		coeff   *big.Int
+		promise polyPromise
+	}
+	retPoly := NewWeightPolyBuilder(poly1.Rank())
+	poly1Wts := poly1.Weights()
+	poly2Wts := poly2.Weights()
+	expanList := make([]monoExpan, 0, len(poly1Wts)*len(poly2Wts))
+	for _, wt1 := range poly1Wts {
+		mult1 := poly1.Multiplicity(wt1)
+		for _, wt2 := range poly2Wts {
+			mult2 := poly2.Multiplicity(wt2)
+			coeff := big.NewInt(0).Mul(mult1, mult2)
+			promise := app.asynchApply(wt1, wt2)
+			expanList = append(expanList, monoExpan{coeff, promise})
+		}
+	}
+
+	rslt := big.NewInt(0)
+	for _, exp := range expanList {
+		coeff := exp.coeff
+		summand := exp.promise()
+
+		for _, wt := range summand.Weights() {
+			mult := summand.Multiplicity(wt)
+			rslt.Mul(coeff, mult)
+			retPoly.AddMonomial(wt, rslt)
+		}
+	}
+
+	return retPoly
+}
+
+func (app *asynchPP) asynchApply(wt1, wt2 Weight) polyPromise {
+	submap, present := app.rsltDict.Get(wt1)
+	if present {
+		curryMap := submap.(util.VectorMap)
+		val, present := curryMap.Get(wt2)
+		if present {
+			return func() WeightPoly {
+				return val.(WeightPoly)
+			}
+
+			c := make(chan WeightPoly)
+			go func(wt1, wt2 Weight, c chan WeightPoly) {
+				c <- app.prod(wt1, wt2)
+			}(wt1, wt2, c)
+
+			return func() WeightPoly {
+				rslt := <-c
+				curryMap.Put(wt2, rslt)
+				return rslt
+			}
+		}
+	}
+
+	c := make(chan WeightPoly)
+	go func(wt1, wt2 Weight, c chan WeightPoly) {
+		c <- app.prod(wt1, wt2)
+	}(wt1, wt2, c)
+
+	return func() WeightPoly {
+		rslt := <-c
+		curryMap := util.NewVectorMap()
+		curryMap.Put(wt2, rslt)
+		app.rsltDict.Put(wt1, curryMap)
+		return rslt
+	}
+}
+
+func (app *asynchPP) Reduce(polys ...WeightPoly) WeightPoly {
+	if len(polys) == 0 {
+		return nil
+	}
+	if len(polys) == 1 {
+		return polys[0]
+	}
+
+	var product = polys[0]
+	for i := 1; i < len(polys); i++ {
+		product = app.Apply(product, polys[i])
+	}
+
+	return product
+}
+
+type polyPromise func() WeightPoly
+
+// A WeightProduct defines a product on WeightPolys.
+type WeightProduct func(Weight, Weight) MutableWeightPoly
+
+func (prod WeightProduct) Memoize() WeightProduct {
 	fusionDict := util.NewVectorMap()
 	var mutex = &sync.Mutex{}
-	var memoProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
+	var memoProd WeightProduct = func(wt1, wt2 Weight) MutableWeightPoly {
 		mutex.Lock()
 		submap, present := fusionDict.Get(wt1)
 		if present {
@@ -134,7 +237,7 @@ func (prod PolyProduct) Memoize() PolyProduct {
 }
 
 // MemoReduce reduces the polynomials using memoization.
-func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
+func (prod WeightProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
 	if len(polys) == 0 {
 		return nil
 	}
@@ -153,7 +256,7 @@ func (prod PolyProduct) MemoReduce(polys ...WeightPoly) WeightPoly {
 }
 
 // Reduce applies the product to a list of polynomials
-func (prod PolyProduct) Reduce(polys ...WeightPoly) WeightPoly {
+func (prod WeightProduct) Reduce(polys ...WeightPoly) WeightPoly {
 	if len(polys) == 0 {
 		return nil
 	}
@@ -170,7 +273,7 @@ func (prod PolyProduct) Reduce(polys ...WeightPoly) WeightPoly {
 }
 
 // Apply the PolyProduct to the given WeightPolys.
-func (prod PolyProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
+func (prod WeightProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
 	type monoExpan struct {
 		coeff *big.Int
 		poly  WeightPoly

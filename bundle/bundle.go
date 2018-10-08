@@ -96,7 +96,7 @@ func (bun symCbbundleImpl) SymmetrizedDivisor() []*big.Rat {
 	}
 	n := len(bun.wts)
 	rho := alg.Rho()
-	prod := alg.FusionProduct(bun.ell).Memoize()
+	prod := alg.FusionProduct(bun.ell)
 	rk := prod.Reduce(wts[1:n]...).Multiplicity(alg.Dual(bun.wts[0]))
 
 	// Calculate the starting point of each coord

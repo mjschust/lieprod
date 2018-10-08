@@ -13,7 +13,7 @@ type Algebra interface {
 	ReprDimension(Weight) *big.Int
 	DominantChar(Weight) WeightPoly
 	Tensor(...Weight) WeightPoly
-	TensorProduct() PolyProduct
+	TensorProduct() WeightProduct
 	Fusion(int, ...Weight) WeightPoly
 	FusionProduct(int) PolyProduct
 }
@@ -195,12 +195,12 @@ func (alg algebraImpl) Tensor(wts ...Weight) WeightPoly {
 	for i := range wts {
 		polys[i] = wts[i]
 	}
-	var polyProd PolyProduct = alg.tensorProduct
+	var polyProd WeightProduct = alg.tensorProduct
 	return polyProd.Reduce(polys...)
 }
 
 // TensorProduct returns a weight polynomial product based on the tensor product
-func (alg algebraImpl) TensorProduct() PolyProduct {
+func (alg algebraImpl) TensorProduct() WeightProduct {
 	return alg.tensorProduct
 }
 
@@ -257,17 +257,19 @@ func (alg algebraImpl) Fusion(ell int, wts ...Weight) WeightPoly {
 	for i := range wts {
 		polys[i] = wts[i]
 	}
-	var polyProd PolyProduct = func(wt1, wt2 Weight) MutableWeightPoly {
+	var prod WeightProduct = func(wt1, wt2 Weight) MutableWeightPoly {
 		return alg.fusionProduct(ell, wt1, wt2)
 	}
-	return polyProd.MemoReduce(polys...)
+	polyProd := NewAsynchPP(prod)
+	return polyProd.Reduce(polys...)
 }
 
 // FusionProduct returns a weight polynomial product based on the level ell fusion product
 func (alg algebraImpl) FusionProduct(ell int) PolyProduct {
-	return func(wt1, wt2 Weight) MutableWeightPoly {
+	var prod WeightProduct = func(wt1, wt2 Weight) MutableWeightPoly {
 		return alg.fusionProduct(ell, wt1, wt2)
 	}
+	return NewAsynchPP(prod)
 }
 
 // fusionProduct computes the tensor product decomposition of the given representations.

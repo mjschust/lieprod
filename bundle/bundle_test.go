@@ -397,7 +397,7 @@ func BenchmarkSymmetricCBRank(b *testing.B) {
 func BenchmarkSymmetricDivisor(b *testing.B) {
 	rank := 5
 	level := 4
-	n := 10
+	n := 100
 	alg := lie.NewAlgebra(lie.NewTypeARootSystem(rank))
 	wts := alg.Weights(level)
 
