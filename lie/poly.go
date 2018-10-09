@@ -95,22 +95,30 @@ func (poly hashPolyBuilder) Mult(val *big.Int) {
 	}
 }
 
+// A WeightProduct defines a product on weights with polynomial output.
+type WeightProduct func(Weight, Weight) MutableWeightPoly
+
+// A PolyProduct defines a product on weight polynomials.
 type PolyProduct interface {
 	Apply(WeightPoly, WeightPoly) WeightPoly
 	Reduce(...WeightPoly) WeightPoly
 }
 
-func NewAsynchPP(prod WeightProduct) PolyProduct {
-	return &asynchPP{prod, util.NewVectorMap(), sync.Mutex{}}
+// NewProduct constructs a poly product without memoization.
+func NewProduct(prod WeightProduct) PolyProduct {
+	return polyProductImpl{plainKernel{prod}}
 }
 
-type asynchPP struct {
-	prod     WeightProduct
-	rsltDict util.VectorMap
-	sync.Mutex
+// NewMemoizedProduct constructs a poly product with memoization.
+func NewMemoizedProduct(prod WeightProduct) PolyProduct {
+	return polyProductImpl{&memoizedKernel{prod, util.NewVectorMap(), sync.Mutex{}}}
 }
 
-func (app *asynchPP) Apply(poly1, poly2 WeightPoly) WeightPoly {
+type polyProductImpl struct {
+	productKernel
+}
+
+func (app polyProductImpl) Apply(poly1, poly2 WeightPoly) WeightPoly {
 	type monoExpan struct {
 		coeff   *big.Int
 		promise polyPromise
@@ -144,60 +152,7 @@ func (app *asynchPP) Apply(poly1, poly2 WeightPoly) WeightPoly {
 	return retPoly
 }
 
-func (app *asynchPP) asynchApply(wt1, wt2 Weight) polyPromise {
-	app.Lock()
-	submap, present := app.rsltDict.Get(wt1)
-	if present {
-		curryMap := submap.(util.VectorMap)
-		val, present := curryMap.Get(wt2)
-		if present {
-			app.Unlock()
-			return func() WeightPoly {
-				return val.(WeightPoly)
-			}
-		}
-
-		app.Unlock()
-		c := make(chan WeightPoly)
-		go func(wt1, wt2 Weight, c chan WeightPoly) {
-			c <- app.prod(wt1, wt2)
-		}(wt1, wt2, c)
-
-		return func() WeightPoly {
-			rslt := <-c
-			app.Lock()
-			curryMap.Put(wt2, rslt)
-			app.Unlock()
-			return rslt
-		}
-	}
-
-	app.Unlock()
-	c := make(chan WeightPoly)
-	go func(wt1, wt2 Weight, c chan WeightPoly) {
-		c <- app.prod(wt1, wt2)
-	}(wt1, wt2, c)
-
-	return func() WeightPoly {
-		rslt := <-c
-		app.Lock()
-		submap, present := app.rsltDict.Get(wt1)
-		if present {
-			curryMap := submap.(util.VectorMap)
-			curryMap.Put(wt2, rslt)
-			app.Unlock()
-			return rslt
-		}
-
-		curryMap := util.NewVectorMap()
-		curryMap.Put(wt2, rslt)
-		app.rsltDict.Put(wt1, curryMap)
-		app.Unlock()
-		return rslt
-	}
-}
-
-func (app *asynchPP) Reduce(polys ...WeightPoly) WeightPoly {
+func (app polyProductImpl) Reduce(polys ...WeightPoly) WeightPoly {
 	if len(polys) == 0 {
 		return nil
 	}
@@ -213,61 +168,83 @@ func (app *asynchPP) Reduce(polys ...WeightPoly) WeightPoly {
 	return product
 }
 
-type polyPromise func() WeightPoly
-
-// A WeightProduct defines a product on WeightPolys.
-type WeightProduct func(Weight, Weight) MutableWeightPoly
-
-// Apply the PolyProduct to the given WeightPolys.
-func (prod WeightProduct) Apply(poly1, poly2 WeightPoly) WeightPoly {
-	type monoExpan struct {
-		coeff *big.Int
-		poly  WeightPoly
-	}
-	retPoly := NewWeightPolyBuilder(poly1.Rank())
-	poly1Wts := poly1.Weights()
-	poly2Wts := poly2.Weights()
-	c := make(chan monoExpan)
-	for _, wt1 := range poly1Wts {
-		mult1 := poly1.Multiplicity(wt1)
-		for _, wt2 := range poly2Wts {
-			mult2 := poly2.Multiplicity(wt2)
-			coeff := big.NewInt(0).Mul(mult1, mult2)
-			go func(coeff *big.Int, wt1, wt2 Weight) {
-				c <- monoExpan{coeff, prod(wt1, wt2)}
-			}(coeff, wt1, wt2)
-		}
-	}
-
-	coeff := big.NewInt(0)
-	for range poly1Wts {
-		for range poly2Wts {
-			prodRslt := <-c
-			summand := prodRslt.poly
-
-			for _, wt := range summand.Weights() {
-				mult := summand.Multiplicity(wt)
-				coeff.Mul(prodRslt.coeff, mult)
-				retPoly.AddMonomial(wt, coeff)
-			}
-		}
-	}
-	return retPoly
+type productKernel interface {
+	asynchApply(Weight, Weight) polyPromise
 }
 
-// Reduce applies the product to a list of polynomials
-func (prod WeightProduct) Reduce(polys ...WeightPoly) WeightPoly {
-	if len(polys) == 0 {
-		return nil
+type polyPromise func() WeightPoly
+
+type plainKernel struct {
+	prod WeightProduct
+}
+
+func (knl plainKernel) asynchApply(wt1, wt2 Weight) polyPromise {
+	c := make(chan WeightPoly)
+	go func(wt1, wt2 Weight, c chan WeightPoly) {
+		c <- knl.prod(wt1, wt2)
+	}(wt1, wt2, c)
+
+	return func() WeightPoly {
+		rslt := <-c
+		return rslt
 	}
-	if len(polys) == 1 {
-		return polys[0]
+}
+
+type memoizedKernel struct {
+	prod     WeightProduct
+	rsltDict util.VectorMap
+	sync.Mutex
+}
+
+func (knl *memoizedKernel) asynchApply(wt1, wt2 Weight) polyPromise {
+	knl.Lock()
+	submap, present := knl.rsltDict.Get(wt1)
+	if present {
+		curryMap := submap.(util.VectorMap)
+		val, present := curryMap.Get(wt2)
+		if present {
+			knl.Unlock()
+			return func() WeightPoly {
+				return val.(WeightPoly)
+			}
+		}
+
+		knl.Unlock()
+		c := make(chan WeightPoly)
+		go func(wt1, wt2 Weight, c chan WeightPoly) {
+			c <- knl.prod(wt1, wt2)
+		}(wt1, wt2, c)
+
+		return func() WeightPoly {
+			rslt := <-c
+			knl.Lock()
+			curryMap.Put(wt2, rslt)
+			knl.Unlock()
+			return rslt
+		}
 	}
 
-	var product = polys[0]
-	for i := 1; i < len(polys); i++ {
-		product = prod.Apply(product, polys[i])
-	}
+	knl.Unlock()
+	c := make(chan WeightPoly)
+	go func(wt1, wt2 Weight, c chan WeightPoly) {
+		c <- knl.prod(wt1, wt2)
+	}(wt1, wt2, c)
 
-	return product
+	return func() WeightPoly {
+		rslt := <-c
+		knl.Lock()
+		submap, present := knl.rsltDict.Get(wt1)
+		if present {
+			curryMap := submap.(util.VectorMap)
+			curryMap.Put(wt2, rslt)
+			knl.Unlock()
+			return rslt
+		}
+
+		curryMap := util.NewVectorMap()
+		curryMap.Put(wt2, rslt)
+		knl.rsltDict.Put(wt1, curryMap)
+		knl.Unlock()
+		return rslt
+	}
 }
