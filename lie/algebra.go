@@ -16,6 +16,7 @@ type Algebra interface {
 	TensorProduct() PolyProduct
 	Fusion(int, ...Weight) WeightPoly
 	FusionProduct(int) PolyProduct
+	WeightedFactorizationCoeff(int, []Weight, []Weight) *big.Rat
 }
 
 type algebraImpl struct {
@@ -310,18 +311,27 @@ func (alg algebraImpl) fusionProduct(ell int, wt1, wt2 Weight) MutableWeightPoly
 	return retPoly
 }
 
-func (alg algebraImpl) CBRank(ell int, wts ...Weight) *big.Int {
-	fusProd := alg.fusionProduct(ell, wts[0], wts[1])
-	multiFus := alg.Fusion(ell, wts[2:len(wts)]...)
+func (alg algebraImpl) WeightedFactorizationCoeff(ell int, wts1 []Weight, wts2 []Weight) *big.Rat {
+	// Compute fusion products
+	poly1 := alg.Fusion(ell, wts1...)
+	poly2 := alg.Fusion(ell, wts2...)
 
-	retVal := big.NewInt(0)
+	// Compute integral weighted coefficient
 	rslt := big.NewInt(0)
-	for _, muStar := range fusProd.Weights() {
-		mult1 := fusProd.Multiplicity(muStar)
-		mu := alg.Dual(muStar)
-		mult2 := multiFus.Multiplicity(mu)
-		retVal.Add(retVal, rslt.Mul(mult1, mult2))
+	wfSum := big.NewInt(0)
+	for _, mustar := range poly1.Weights() {
+		mu := alg.Dual(mustar)
+		rslt.SetInt64(int64(alg.IntCasimirScalar(mu)))
+		rslt.Mul(rslt, poly1.Multiplicity(mustar))
+		rslt.Mul(rslt, poly2.Multiplicity(mu))
+		wfSum.Add(wfSum, rslt)
 	}
+
+	// Divide by Killing factor and return value
+	retVal := big.NewRat(0, 1)
+	retVal.SetInt(wfSum)
+	denom := big.NewRat(int64(alg.KillingFactor()), 1)
+	retVal.Quo(retVal, denom)
 	return retVal
 }
 

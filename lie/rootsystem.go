@@ -7,6 +7,7 @@ type RootSystem interface {
 	PositiveRoots() []Root
 	KillingForm(Weight, Weight) float64
 	IntKillingForm(Weight, Weight) int
+	IntCasimirScalar(Weight) int
 	KillingFactor() int
 	NewWeight() Weight
 	Weights(int) []Weight
@@ -77,6 +78,22 @@ func (rtsys typeA) IntKillingForm(wt1, wt2 Weight) int {
 	for i := len(wt1) - 1; i >= 0; i-- {
 		part1 += wt1[i]
 		part2 += wt2[i]
+		product += part1 * part2
+		sum1 += part1
+		sum2 += part2
+	}
+
+	return (rtsys.rank+1)*product - sum1*sum2
+}
+
+// IntCasimirScalar computes the integral casimir scalar for the weight; divide by the killing factor to get
+// the true scalar
+func (rtsys typeA) IntCasimirScalar(wt Weight) int {
+	var part1, part2, product, sum1, sum2 int
+
+	for i := len(wt) - 1; i >= 0; i-- {
+		part1 += wt[i]
+		part2 += wt[i] + 2
 		product += part1 * part2
 		sum1 += part1
 		sum2 += part2
