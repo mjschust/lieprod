@@ -192,6 +192,9 @@ func TestFusion(t *testing.T) {
 		{typeA{2}, 1, Weight{1, 0}, Weight{1, 0},
 			[][]int{{0, 1}},
 			[]int{1}},
+		{typeA{2}, 2, Weight{0, 1}, Weight{0, 1},
+			[][]int{{1, 0}, {0, 2}},
+			[]int{1, 1}},
 		{typeA{2}, 2, Weight{1, 1}, Weight{0, 1},
 			[][]int{{2, 0}, {0, 1}},
 			[]int{1, 1}},
@@ -313,6 +316,78 @@ func TestMultiTensor(t *testing.T) {
 			}
 		}
 
+	}
+}
+
+func TestWeightedFactorizationCoeff(t *testing.T) {
+	cases := []struct {
+		rtsys      RootSystem
+		ell        int
+		wts1, wts2 []Weight
+		want       *big.Rat
+	}{
+		{
+			typeA{1}, 1,
+			[]Weight{Weight{0}, Weight{0}},
+			[]Weight{Weight{0}},
+			big.NewRat(0, 1),
+		},
+		{
+			typeA{1}, 1,
+			[]Weight{Weight{0}, Weight{0}},
+			[]Weight{Weight{1}},
+			big.NewRat(0, 1),
+		},
+		{
+			typeA{1}, 1,
+			[]Weight{Weight{1}, Weight{0}},
+			[]Weight{Weight{1}},
+			big.NewRat(3, 2),
+		},
+		{
+			typeA{1}, 1,
+			[]Weight{Weight{1}, Weight{1}},
+			[]Weight{Weight{0}},
+			big.NewRat(0, 1),
+		},
+		{
+			typeA{1}, 2,
+			[]Weight{Weight{1}, Weight{1}},
+			[]Weight{Weight{0}},
+			big.NewRat(0, 1),
+		},
+		{
+			typeA{1}, 2,
+			[]Weight{Weight{1}, Weight{1}},
+			[]Weight{Weight{2}},
+			big.NewRat(4, 1),
+		},
+		{
+			typeA{1}, 2,
+			[]Weight{Weight{1}, Weight{1}},
+			[]Weight{Weight{1}, Weight{1}},
+			big.NewRat(4, 1),
+		},
+		{
+			typeA{2}, 4,
+			[]Weight{Weight{1, 1}, Weight{1, 1}},
+			[]Weight{Weight{1, 1}},
+			big.NewRat(12, 1),
+		},
+		{
+			typeA{2}, 2,
+			[]Weight{Weight{1, 1}, Weight{0, 1}},
+			[]Weight{Weight{0, 1}, Weight{0, 1}},
+			big.NewRat(28, 3),
+		},
+	}
+
+	for _, c := range cases {
+		alg := NewAlgebra(c.rtsys)
+		got := alg.WeightedFactorizationCoeff(c.ell, c.wts1, c.wts2)
+		if got.Cmp(c.want) != 0 {
+			t.Errorf("WeightedFactorizationCoeff(%v, %v, %v) = %v, want %v", c.ell, c.wts1, c.wts2, got, c.want)
+		}
 	}
 }
 

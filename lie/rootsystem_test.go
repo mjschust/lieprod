@@ -221,6 +221,35 @@ func TestTypeAIntKillingForm(t *testing.T) {
 	}
 }
 
+func TestTypeAIntCasimirScalar(t *testing.T) {
+	cases := []struct {
+		rtsys RootSystem
+		wt    Weight
+		want  int
+	}{
+		{typeA{1}, Weight{0}, 0},
+		{typeA{1}, Weight{1}, 3},
+		{typeA{1}, Weight{2}, 8},
+		{typeA{1}, Weight{3}, 15},
+		{typeA{2}, Weight{0, 0}, 0},
+		{typeA{2}, Weight{1, 0}, 8},
+		{typeA{2}, Weight{0, 1}, 8},
+		{typeA{2}, Weight{2, 0}, 20},
+		{typeA{2}, Weight{0, 2}, 20},
+		{typeA{2}, Weight{1, 1}, 18},
+		{typeA{2}, Weight{2, 1}, 32},
+		{typeA{2}, Weight{1, 2}, 32},
+		{typeA{2}, Weight{2, 2}, 48},
+	}
+
+	for _, c := range cases {
+		got := c.rtsys.IntCasimirScalar(c.wt)
+		if got != c.want {
+			t.Errorf("IntCasimirScalar(%v) == %v, want %v", c.wt, got, c.want)
+		}
+	}
+}
+
 func TestTypeAKillingFactor(t *testing.T) {
 	cases := []struct {
 		rtsys RootSystem
