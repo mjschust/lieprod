@@ -3,7 +3,7 @@ package lie
 import (
 	"testing"
 
-	"github.com/mjschust/cblocks/util"
+	"github.com/mjschust/lieprod/util"
 )
 
 func TestTypeAConvertWeightToEpc(t *testing.T) {

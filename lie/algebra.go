@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/mjschust/cblocks/util"
+	"github.com/mjschust/lieprod/util"
 )
 
 // An Algebra supplies representation-theoretic methods acting on Weights.

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/mjschust/cblocks/util"
+	"github.com/mjschust/lieprod/util"
 )
 
 // MutableWeightPoly is a WeightPoly with additional methods to modify the coefficients.

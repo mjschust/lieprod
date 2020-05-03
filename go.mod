@@ -1,3 +1,3 @@
-module github.com/mjschust/cblocks
+module github.com/mjschust/lieprod
 
 go 1.12
